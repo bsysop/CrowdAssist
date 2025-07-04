@@ -25,4 +25,29 @@ body {
 
 .username-tooltip li:hover {
   background-color: #2d3748;
+}
+
+.ca-username-tooltip {
+  position: absolute;
+  background-color: #12151a;
+  color: #f7fafc;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  z-index: 1000;
+  max-height: 150px;
+  width: 200px;
+  overflow-y: auto;
+}
+
+.ca-username-tooltip li {
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.ca-username-tooltip li:hover {
+  background-color: #2d3748;
 } 

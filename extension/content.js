@@ -112,7 +112,81 @@ function updateTooltipState(commentBox) {
   }
 }
 
+function loadTurndown(callback) {
+  if (window.TurndownService) {
+    callback();
+    return;
+  }
+  const script = document.createElement('script');
+  script.src = chrome.runtime.getURL('turndown.js');
+  script.onload = callback;
+  document.head.appendChild(script);
+}
+
+function copyReportAsMarkdown() {
+  const button = document.getElementById('ca-copy-markdown-button');
+  const originalText = button.querySelector('span:last-child').textContent;
+
+  const turndownService = new TurndownService();
+  const submissionElement = document.querySelector('.bc-helper-nopadding');
+
+  if (submissionElement) {
+    // Clone the element and remove the button from the clone to prevent it from being copied
+    const submissionClone = submissionElement.cloneNode(true);
+    const buttonInClone = submissionClone.querySelector('#ca-copy-markdown-button');
+    if (buttonInClone) {
+      buttonInClone.remove();
+    }
+
+    const markdown = turndownService.turndown(submissionClone);
+    navigator.clipboard.writeText(markdown).then(() => {
+      button.querySelector('span:last-child').textContent = ' [Copied!]';
+      setTimeout(() => {
+        button.querySelector('span:last-child').textContent = originalText;
+      }, 2000);
+    }).catch(err => {
+      console.error('CrowdAssist: Failed to copy text: ', err);
+      button.querySelector('span:last-child').textContent = ' [Error!]';
+      setTimeout(() => {
+        button.querySelector('span:last-child').textContent = originalText;
+      }, 2000);
+    });
+  } else {
+    console.error('CrowdAssist: Could not find submission content element.');
+  }
+}
+
+function addCopyButton() {
+  const targetArea = document.querySelector('#researcher-submission > div.row > div.col-md-9.col-md-pull-3 > div > ul > li > ul > li:nth-child(8) > div.col-md-9 > div');
+  if (targetArea && !document.getElementById('ca-copy-markdown-button')) {
+    const copyButton = document.createElement('a');
+    
+    const iconSpan = document.createElement('span');
+    iconSpan.dataset.testid = 'bc-icons';
+    iconSpan.className = 'bc-icons bc-icons--markdown-icon bc-icons--parent-color';
+    iconSpan.innerHTML = '<svg class="bc-icons__svg" viewBox="0 0 24 24" width="100%" height="100%" focusable="false" aria-hidden="true"><use href="#markdown-icon"></use></svg>';
+    iconSpan.style.marginRight = '8px';
+    copyButton.appendChild(iconSpan);
+
+    const text = document.createElement('span');
+    text.textContent = ' [Copy as Markdown]';
+    copyButton.appendChild(text);
+    
+    copyButton.id = 'ca-copy-markdown-button';
+    copyButton.style.cursor = 'pointer';
+    copyButton.style.color = '#FF6900';
+    copyButton.style.display = 'flex';
+    copyButton.style.alignItems = 'center';
+    copyButton.style.marginBottom = '5px';
+    copyButton.addEventListener('click', copyReportAsMarkdown);
+    
+    targetArea.prepend(copyButton);
+  }
+}
+
 function init() {
+  addCopyButton();
+  
   const commentBox = document.querySelector('#create-comment-body');
 
   if (!commentBox || commentBox.dataset.caInit) {

@@ -9,9 +9,26 @@
   ],
   "content_scripts": [
     {
-      "matches": ["https://*.bugcrowd.com/*"],
-      "js": ["content.js"],
-      "css": ["style.css"]
+      "matches": [
+        "https://bugcrowd.com/submissions/*"
+      ],
+      "js": [
+        "turndown.js",
+        "content.js"
+      ],
+      "css": [
+        "style.css"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "turndown.js"
+      ],
+      "matches": [
+        "https://bugcrowd.com/*"
+      ]
     }
   ],
   "action": {
