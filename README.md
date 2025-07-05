@@ -18,6 +18,21 @@ Easily copy the full submission report as Markdown with a single click. The "Cop
 
 ![Copy as Markdown Feature](https://raw.githubusercontent.com/bsysop/CrowdAssist/refs/heads/main/screenshots/copy_markdown_feature.gif)
 
+### Include My IP
+
+Quickly add your public IP address to a comment.
+
+![Include My IP Feature](https://raw.githubusercontent.com/bsysop/CrowdAssist/refs/heads/main/screenshots/include_my_ip.gif)
+
+## Changelog
+
+### v1.1
+- Added "Include My IP" feature to quickly add your public IP address to comments.
+
+### v1.0
+- Initial release.
+- Features: Username Mentions and Copy as Markdown.
+
 ## Installation
 
 1. Download this repository as a ZIP file and unzip it, or clone the repository.
