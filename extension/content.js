@@ -131,11 +131,11 @@ function copyReportAsMarkdown() {
   const submissionElement = document.querySelector('.bc-helper-nopadding');
 
   if (submissionElement) {
-    // Clone the element and remove the button from the clone to prevent it from being copied
+    // Clone the element and remove the feature container from the clone to prevent it from being copied
     const submissionClone = submissionElement.cloneNode(true);
-    const buttonInClone = submissionClone.querySelector('#ca-copy-markdown-button');
-    if (buttonInClone) {
-      buttonInClone.remove();
+    const featureContainerInClone = submissionClone.querySelector('#ca-copy-feature-container');
+    if (featureContainerInClone) {
+      featureContainerInClone.remove();
     }
 
     const markdown = turndownService.turndown(submissionClone);
@@ -158,9 +158,23 @@ function copyReportAsMarkdown() {
 
 function addCopyButton() {
   const targetArea = document.querySelector('#researcher-submission > div.row > div.col-md-9.col-md-pull-3 > div > ul > li > ul > li:nth-child(8) > div.col-md-9 > div');
-  if (targetArea && !document.getElementById('ca-copy-markdown-button')) {
+
+  // Prevent duplicate additions
+  if (targetArea && !document.getElementById('ca-copy-feature-container')) {
+    const featureContainer = document.createElement('div');
+    featureContainer.id = 'ca-copy-feature-container';
+    featureContainer.style.display = 'flex';
+    featureContainer.style.alignItems = 'center';
+    featureContainer.style.marginBottom = '5px';
+
+    const label = document.createElement('span');
+    label.textContent = 'CrowdAssist:';
+    label.style.fontWeight = 'bold';
+    label.style.marginRight = '8px';
+    featureContainer.appendChild(label);
+
     const copyButton = document.createElement('a');
-    
+
     const iconSpan = document.createElement('span');
     iconSpan.dataset.testid = 'bc-icons';
     iconSpan.className = 'bc-icons bc-icons--markdown-icon bc-icons--parent-color';
@@ -171,21 +185,70 @@ function addCopyButton() {
     const text = document.createElement('span');
     text.textContent = ' [Copy as Markdown]';
     copyButton.appendChild(text);
-    
+
     copyButton.id = 'ca-copy-markdown-button';
     copyButton.style.cursor = 'pointer';
     copyButton.style.color = '#FF6900';
     copyButton.style.display = 'flex';
     copyButton.style.alignItems = 'center';
-    copyButton.style.marginBottom = '5px';
     copyButton.addEventListener('click', copyReportAsMarkdown);
     
-    targetArea.prepend(copyButton);
+    featureContainer.appendChild(copyButton);
+    targetArea.prepend(featureContainer);
+  }
+}
+
+function addIncludeIpButton() {
+  const referenceElement = document.querySelector('#reply-form > div > div > div:nth-child(3)');
+
+  if (referenceElement && !document.getElementById('ca-ip-feature-container')) {
+    const featureContainer = document.createElement('div');
+    featureContainer.id = 'ca-ip-feature-container';
+    featureContainer.className = 'panel-footer'; // Use existing class for styling
+
+    const label = document.createElement('span');
+    label.textContent = 'CrowdAssist';
+    featureContainer.appendChild(label);
+
+    const ipButton = document.createElement('button');
+    ipButton.textContent = '[Include My IP]';
+    ipButton.id = 'ca-include-ip-button';
+    ipButton.className = 'bc-btn bc-btn--link';
+    ipButton.type = 'button';
+    ipButton.style.color = '#FF6900';
+    ipButton.style.padding = '0';
+    ipButton.style.verticalAlign = 'baseline';
+    ipButton.style.marginLeft = '10px';
+
+    ipButton.addEventListener('click', async (event) => {
+      event.preventDefault();
+      try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        const ip = data.ip;
+
+        const commentBox = document.querySelector('#create-comment-body');
+        if (commentBox) {
+          const textToInsert = `My IP is: ${ip}`;
+          const newText = commentBox.value ? `${commentBox.value}\n\n${textToInsert}` : textToInsert;
+
+          // Use a simpler method to set the value and dispatch an event
+          commentBox.value = newText;
+          commentBox.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      } catch (error) {
+        console.error('CrowdAssist: Failed to fetch IP address.', error);
+      }
+    });
+
+    featureContainer.appendChild(ipButton);
+    referenceElement.insertAdjacentElement('afterend', featureContainer);
   }
 }
 
 function init() {
   addCopyButton();
+  addIncludeIpButton();
   
   const commentBox = document.querySelector('#create-comment-body');
 
