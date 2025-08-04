@@ -26,6 +26,23 @@ Quickly add your public IP address to a comment.
 
 ## Changelog
 
+### v1.3.0
+- Added **Dark Mode Support** with system default, light, and dark theme options
+- Improved **Modal Interface** with professional floating dialogs replacing basic prompts
+- Enhanced **Theme Integration** - all CrowdAssist modals now respect user's theme preference
+- Added **System Theme Detection** - automatically follows your OS dark/light mode setting
+- Minor fixes
+
+### v1.2
+- Added **AI Review Text** button to improve comment text using ChatGPT
+- Added **Auto-Reply** button to generate responses to program team comments
+- Added **Report Creation** features for submission pages:
+  - Include My IP button for report creation pages
+  - AI Review Report button to improve vulnerability reports
+- Enhanced button placement and styling
+- Added OpenAI API integration for AI-powered features
+- Improved page detection to distinguish between report creation and visualization pages
+
 ### v1.1
 - Added "Include My IP" feature to quickly add your public IP address to comments.
 
@@ -42,6 +59,11 @@ Quickly add your public IP address to a comment.
 5. Select the `CrowdAssist` directory.
 
 The extension is now installed and will be active on Bugcrowd pages (Refresh could be needed).
+
+## Contributors
+
+- **bsysop** - Creator
+  - Twitter: [@bsysop](https://twitter.com/bsysop)
 
 ## Contributing
 

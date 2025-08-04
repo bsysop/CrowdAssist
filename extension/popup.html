@@ -4,13 +4,162 @@
   <title>CrowdAssist</title>
   <style>
     body {
-      width: 200px;
-      font-family: sans-serif;
+      width: 320px;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .header h1 {
+      margin: 0 0 8px 0;
+      font-size: 20px;
+      color: #1a1a1a;
+    }
+    
+    .header p {
+      margin: 0;
+      color: #666;
+      font-size: 12px;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #333;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #FF6900;
+      box-shadow: 0 0 0 2px rgba(255, 105, 0, 0.2);
+    }
+    
+    .btn {
+      background-color: #FF6900;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+    
+    .btn:hover {
+      background-color: #e55a00;
+    }
+    
+    .btn:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .status {
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    
+    .status.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .status.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .help-text {
+      font-size: 11px;
+      color: #666;
+      margin-top: 4px;
+    }
+    
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    
+    .checkbox-container input[type="checkbox"] {
+      width: auto;
+      margin-right: 8px;
+      margin-bottom: 0;
+    }
+    
+    .checkbox-container label {
+      margin: 0;
+      font-weight: 500;
+      color: #333;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
     }
   </style>
 </head>
 <body>
-  <h1>CrowdAssist</h1>
-  <p>This extension helps you write reports faster.</p>
+  <div class="header">
+    <h1>CrowdAssist</h1>
+    <p>Bug Bounty Research Assistant</p>
+  </div>
+  
+  <div class="form-group">
+    <label for="openai-token">OpenAI API Token</label>
+    <input type="password" id="openai-token" placeholder="sk-...">
+    <div class="help-text">Your token is stored locally and never shared.</div>
+  </div>
+  
+  <!-- Privacy Mode temporarily disabled for review
+  <div class="form-group">
+    <div class="checkbox-container">
+      <input type="checkbox" id="privacy-mode">
+      <label for="privacy-mode">Privacy Mode</label>
+    </div>
+    <div class="help-text">Hide sensitive information like submission titles and monetary rewards.</div>
+  </div>
+  -->
+  
+  <div class="form-group">
+    <label for="theme-mode">Theme</label>
+    <select id="theme-mode" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;">
+      <option value="system">System Default</option>
+      <option value="light">Light Mode</option>
+      <option value="dark">Dark Mode</option>
+    </select>
+    <div class="help-text">Choose your preferred theme for CrowdAssist modals and interface.</div>
+  </div>
+  
+  <button class="btn" id="save-token">Save Settings</button>
+  <button class="btn" id="test-token" disabled>Test Connection</button>
+  
+  <div id="status" class="status" style="display: none;"></div>
+  
+  <script src="popup.js"></script>
 </body>
 </html> 
