@@ -27,16 +27,14 @@ Quickly add your public IP address to a comment.
 ## Changelog
 
 ### v1.3.0
-- Added **Dark Mode Support** with system default, light, and dark theme options
-- Improved **Modal Interface** with professional floating dialogs replacing basic prompts
-- Enhanced **Theme Integration** - all CrowdAssist modals now respect user's theme preference
-- Added **System Theme Detection** - automatically follows your OS dark/light mode setting
+- Added **Dark Mode Support** with system default, light, and dark theme options (automatically follows your OS setting)
+- Improved **Modal Interface** with floating dialogs replacing basic prompts
 - Minor fixes
 
 ### v1.2
 - Added **AI Review Text** button to improve comment text using ChatGPT
 - Added **Auto-Reply** button to generate responses to program team comments
-- Added **Report Creation** features for submission pages:
+- Added **Report Creation helper** features for submission pages:
   - Include My IP button for report creation pages
   - AI Review Report button to improve vulnerability reports
 - Enhanced button placement and styling
