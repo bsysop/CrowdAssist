@@ -1,28 +1,53 @@
 # CrowdAssist
 
-An assistant for Bug Bounty Researchers to help with report writing on Bugcrowd.
+CrowdAssist is a Chrome extension designed specifically for bug bounty researchers and Bug Bounty Platforms. It enhances your research workflow with AI-powered report writing, intelligent automation tools, and productivity features that save time and improve the quality of your vulnerability submissions.
+
+Whether you're writing reports, managing submissions, or communicating with triager or program teams, CrowdAssist provides the tools you need to work more efficiently and professionally.
 
 ## Features
 
-CrowdAssist offers two main features to streamline your workflow.
+### Report Creation & Enhancement
+*Available on Bugcrowd report creation pages*
 
-### Username Mentions
+- **Include Your IP** - Insert your public IP address into reports with one click
+- **AI Report Review** ✨ - Leverage ChatGPT to analyze and improve your report for clarity, completeness, and impact
+- **Auto Create Report (Experimental)** ✨ - Generate comprehensive, well-structured vulnerability reports using AI assistance and best practices
 
-Quickly mention researchers and Bugcrowd staff in comments by typing `@` followed by their name. A helpful tooltip will appear to autocomplete the username.
+### Submission Management
+*Available on Bugcrowd submission pages*
 
-![Username Mentions Feature](https://github.com/bsysop/CrowdAssist/blob/main/screenshots/tag_feature.gif?raw=true)
+- **Copy as Markdown** - Export complete submission reports as properly formatted Markdown
+- **Smart Commenting** - Enhanced commenting system with multiple productivity features:
+  - **Include Your IP** - Add your public IP to the report comments
+  - **Username Mentions** - Type `@` + name for autocomplete of Program Managers or Platform Team
+  - **AI Review Text** ✨ - Polish your comments using ChatGPT for professional, clear and effective communication
+  - **Auto-Reply** ✨ - Generate contextual responses to program team comments with AI assistance (Need to be validated by yourself)
 
-### Copy as Markdown
+## Screenshots
 
-Easily copy the full submission report as Markdown with a single click. The "Copy as Markdown" button appears at the top of the submission details.
+### Copy Markdown
 
-![Copy as Markdown Feature](https://raw.githubusercontent.com/bsysop/CrowdAssist/refs/heads/main/screenshots/copy_markdown_feature.gif)
+*Effortlessly export submission reports as formatted Markdown*
 
-### Include My IP
+![Copy as Markdown Feature](https://raw.githubusercontent.com/bsysop/CrowdAssist/refs/heads/main/screenshots/report_copy_as_markdown.png)
 
-Quickly add your public IP address to a comment.
+### Report Creation
 
-![Include My IP Feature](https://raw.githubusercontent.com/bsysop/CrowdAssist/refs/heads/main/screenshots/include_my_ip.gif)
+*AI-powered report enhancement and creation tools*
+
+![AI Report Review](https://raw.githubusercontent.com/bsysop/CrowdAssist/refs/heads/main/screenshots/report_screen1.png)
+
+![AI Report Enhancement](https://raw.githubusercontent.com/bsysop/CrowdAssist/refs/heads/main/screenshots/report_screen2.png)
+
+![Auto Create Report](https://raw.githubusercontent.com/bsysop/CrowdAssist/refs/heads/main/screenshots/report_screen3.png)
+
+### Submission Management
+
+*Enhanced commenting system with multiple productivity features*
+
+![AI Reply and Text Review](https://raw.githubusercontent.com/bsysop/CrowdAssist/refs/heads/main/screenshots/comment_screen2.png)
+
+![Smart Commenting Features](https://raw.githubusercontent.com/bsysop/CrowdAssist/refs/heads/main/screenshots/comment_screen1.png)
 
 ## Changelog
 
@@ -50,13 +75,25 @@ Quickly add your public IP address to a comment.
 
 ## Installation
 
+### Install CrowdAssist
+
 1. Download this repository as a ZIP file and unzip it, or clone the repository.
 2. Open your Chrome browser and navigate to `chrome://extensions`.
 3. Enable "Developer mode" using the toggle in the top-right corner.
 4. Click the "Load unpacked" button.
 5. Select the `CrowdAssist` directory.
 
-The extension is now installed and will be active on Bugcrowd pages (Refresh could be needed).
+The extension is now installed and will be active on the Bug Bounty Platform pages (Refresh could be needed).
+
+### Set ChatGPT API Token
+
+To use CrowdAssist's AI-powered features, you'll need an OpenAI API token:
+
+1. Get your API token from [OpenAI's platform](https://platform.openai.com/api-keys)
+2. Click the CrowdAssist icon in your browser and enter your API token
+3. Save settings and start using AI features
+
+> **Note:** Your API token is stored locally in your browser and never shared. Basic features like "Copy as Markdown" and "Username Mentions" work without an API token.
 
 ## Contributors
 
@@ -69,9 +106,12 @@ This is an open-source project. If you have ideas for new features or have found
 
 ## Potential TODOs
 
+- [ ] Implement Hackerone support (Under review)
+- [ ] Implement YesWeHack support (Under review)
+- [ ] Implement Intigriti support (Under review)
 - [ ] Copy/Export Program Scope
 - etc
 
 ## Privacy Note
 
-This extension enhances your workflow by reading public usernames directly from the submission's activity feed. It does this by looking for specific HTML tags (`span.owner-name[data-tooltip-id]`) and does not read or store any other data from the page. The full source code is available in `content.js` for auditing. 
+CrowdAssist only accesses the Information on the Bug Bounty Platform pages to enhance your workflow, such as usernames for autocomplete and submission content for report export. Your OpenAI API token is stored locally in your browser and never shared externally. No sensitive data is collected, transmitted, or stored by the extension. The complete source code is available for transparency and auditing. 
