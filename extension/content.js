@@ -241,7 +241,7 @@ function showInputModal(title, inputs, onSubmit) {
   });
 }
 
-function showResultModal(title, content, onConfirm) {
+function showResultModal(title, content, onConfirm, buttonText = 'Use This Report') {
   getCurrentTheme((theme) => {
     const styles = getThemeStyles(theme);
     
@@ -256,7 +256,7 @@ function showResultModal(title, content, onConfirm) {
         onClick: () => {}
       },
       {
-        text: 'Use This Report',
+        text: buttonText,
         primary: true,
         onClick: onConfirm
       }
@@ -734,7 +734,7 @@ Generate only the response text, no additional formatting or explanations.`;
           } else {
             alert('Could not find comment box to insert the reply.');
           }
-        });
+        }, 'Use This Reply');
 
       } catch (error) {
         console.error('CrowdAssist: Failed to generate auto-reply:', error);
