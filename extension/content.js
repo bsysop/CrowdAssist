@@ -489,6 +489,78 @@ function addCopyButton() {
   }
 }
 
+// Calculate and display time from submission to triaged
+function addTriagedTimeIndicator() {
+  // Avoid duplicates; also clean up any old container id from previous implementation
+  const existing = document.getElementById('ca-triage-time-indicator');
+  if (existing) {
+    return;
+  }
+  const oldExisting = document.getElementById('ca-triage-time-container');
+  if (oldExisting) {
+    oldExisting.remove();
+  }
+
+  // Check current Status badge text is exactly "Triaged"
+  const statusSpan = document.querySelector('#researcher-submission > div.row > div.col-md-3.col-md-push-9 > div:nth-child(1) > p:nth-child(2) > span');
+  if (!statusSpan) {
+    return;
+  }
+  const statusText = statusSpan.textContent ? statusSpan.textContent.trim() : '';
+  if (statusText !== 'Triaged') {
+    return;
+  }
+
+  // Get submission time
+  const submissionTimeEl = document.querySelector('#researcher-submission > div.row > div.col-md-9.col-md-pull-3 > div > ul > li > ul > li:nth-child(2) > div.col-md-9.cc-tabular-nums > time');
+  const submissionDateStr = submissionTimeEl && submissionTimeEl.getAttribute('datetime');
+  const submissionDate = submissionDateStr ? new Date(submissionDateStr) : null;
+
+  if (!submissionDate) {
+    return; // Cannot compute without submission date
+  }
+
+  // Find triaged activity block and its time
+  const triageBadge = document.querySelector('.activity-block__content .bc-badge--triaged');
+  if (!triageBadge) {
+    return; // Not triaged yet
+  }
+  const triageBlock = triageBadge.closest('.activity-block__content');
+  if (!triageBlock) {
+    return;
+  }
+  const triageTimeEl = triageBlock.querySelector('.cc-datetime-stamp__absolute time') || triageBlock.querySelector('time');
+  const triageDateStr = triageTimeEl && triageTimeEl.getAttribute('datetime');
+  const triageDate = triageDateStr ? new Date(triageDateStr) : null;
+  if (!triageDate) {
+    return;
+  }
+
+  // Compute duration
+  const diffMs = Math.max(0, triageDate.getTime() - submissionDate.getTime());
+  const minutes = Math.floor(diffMs / 60000);
+  const days = Math.floor(minutes / (60 * 24));
+  const hours = Math.floor((minutes % (60 * 24)) / 60);
+  const mins = minutes % 60;
+
+  const parts = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  parts.push(`${mins}m`);
+  const formatted = parts.join(' ');
+
+  // Build indicator right below the Status span
+  const indicator = document.createElement('div');
+  indicator.id = 'ca-triage-time-indicator';
+  indicator.textContent = `Triaged in ${formatted}`;
+  indicator.title = `Submitted: ${submissionDate.toString()}\nTriaged: ${triageDate.toString()}`;
+  indicator.style.marginTop = '4px';
+  indicator.style.fontSize = '12px';
+  indicator.style.color = '#6b7280';
+
+  statusSpan.insertAdjacentElement('afterend', indicator);
+}
+
 function addIncludeIpButton() {
   const referenceElement = document.querySelector('#reply-form > div > div > div:nth-child(3)');
 
@@ -1146,6 +1218,7 @@ function init() {
   } else if (isReportVisualizationPage()) {
     // Report visualization pages: /submissions/UUID
     addCopyButton();
+    addTriagedTimeIndicator();
     addIncludeIpButton();
     addAiReviewButton();
     addAutoReplyButton();
