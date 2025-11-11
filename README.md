@@ -17,6 +17,7 @@ Whether you're writing reports, managing submissions, or communicating with tria
 *Available on Bugcrowd submission pages*
 
 - **Copy as Markdown** - Export complete submission reports as properly formatted Markdown
+- **Triage Time Insight** - Shows how long it took from submission to Triaged, displayed under the Status panel when the submission is triaged
 - **Smart Commenting** - Enhanced commenting system with multiple productivity features:
   - **Include Your IP** - Add your public IP to the report comments
   - **Username Mentions** - Type `@` + name for autocomplete of Program Managers or Platform Team
