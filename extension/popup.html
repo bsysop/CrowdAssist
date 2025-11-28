@@ -155,6 +155,17 @@
     <div class="help-text">Choose your preferred theme for CrowdAssist modals and interface.</div>
   </div>
   
+  <div class="form-group">
+    <div class="checkbox-container">
+      <input type="checkbox" id="auto-renew-session">
+      <label for="auto-renew-session">Auto-Renew Session</label>
+    </div>
+    <div class="help-text">Automatically refresh your Bugcrowd session every hour to prevent timeout.</div>
+    <div class="help-text" id="bugcrowd-login-status" style="margin-top: 6px; font-weight: 500;">
+      Bugcrowd Status: <span id="login-status-text">Checking...</span>
+    </div>
+  </div>
+  
   <button class="btn" id="save-token">Save Settings</button>
   <button class="btn" id="test-token" disabled>Test Connection</button>
   
