@@ -96,7 +96,22 @@ Whether you're writing reports, managing submissions, or communicating with tria
 
 The extension is now installed and will be active on the Bug Bounty Platform pages (Refresh could be needed).
 
-### Set ChatGPT API Token
+### Configure CrowdAssist Settings
+
+Click the CrowdAssist extension icon in your browser toolbar to access settings:
+
+#### Auto-Renew Session (Enabled by Default)
+
+The Auto-Renew Session feature is **enabled by default** and works automatically in the background:
+
+- Refreshes your Bugcrowd session every hour
+- Prevents the 2-hour session timeout
+- Shows your Bugcrowd login status (Connected/Not Connected)
+- Can be toggled on/off in the extension popup
+
+> **Note:** This feature requires you to be logged into Bugcrowd. The extension will show "Not Connected" if you're not logged in.
+
+#### Set ChatGPT API Token
 
 To use CrowdAssist's AI-powered features, you'll need an OpenAI API token:
 
@@ -104,7 +119,7 @@ To use CrowdAssist's AI-powered features, you'll need an OpenAI API token:
 2. Click the CrowdAssist icon in your browser and enter your API token
 3. Save settings and start using AI features
 
-> **Note:** Your API token is stored locally in your browser and never shared. Basic features like "Copy as Markdown" and "Username Mentions" work without an API token.
+> **Note:** Your API token is stored locally in your browser and never shared. Basic features like "Copy as Markdown", "Username Mentions", and "Auto-Renew Session" work without an API token.
 
 ## Contributors
 
@@ -125,4 +140,10 @@ This is an open-source project. If you have ideas for new features or have found
 
 ## Privacy Note
 
-CrowdAssist only accesses the Information on the Bug Bounty Platform pages to enhance your workflow, such as usernames for autocomplete and submission content for report export. Your OpenAI API token is stored locally in your browser and never shared externally. No sensitive data is collected, transmitted, or stored by the extension. The complete source code is available for transparency and auditing. 
+CrowdAssist only accesses information on Bug Bounty Platform pages to enhance your workflow, such as usernames for autocomplete and submission content for report export. 
+
+**Session Management:** The Auto-Renew Session feature reads your Bugcrowd session cookies to maintain your login session. These cookies are only used to send refresh requests to Bugcrowd's servers and are never transmitted elsewhere.
+
+**API Token:** Your OpenAI API token is stored locally in your browser and never shared externally. 
+
+No sensitive data is collected, transmitted to third parties, or stored by the extension. The complete source code is available for transparency and auditing. 
