@@ -1,17 +1,22 @@
 // Background service worker for CrowdAssist
+// Browser API compatibility shim for Chrome and Firefox
+if (typeof browser === 'undefined') {
+  var browser = chrome;
+}
+
 console.log('CrowdAssist background service worker started');
 
 // Alarm name for session refresh
 const SESSION_REFRESH_ALARM = 'bugcrowd-session-refresh';
 
 // Initialize the extension
-chrome.runtime.onInstalled.addListener(async () => {
+browser.runtime.onInstalled.addListener(async () => {
   console.log('CrowdAssist installed/updated');
   
   // Set default value for auto_renew_session if not set
-  const result = await chrome.storage.sync.get(['auto_renew_session']);
+  const result = await browser.storage.sync.get(['auto_renew_session']);
   if (result.auto_renew_session === undefined) {
-    await chrome.storage.sync.set({ auto_renew_session: true });
+    await browser.storage.sync.set({ auto_renew_session: true });
     console.log('Auto-renew session enabled by default');
   }
   
@@ -22,17 +27,17 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 
 // Start on extension startup
-chrome.runtime.onStartup.addListener(async () => {
+browser.runtime.onStartup.addListener(async () => {
   console.log('CrowdAssist startup');
   
-  const result = await chrome.storage.sync.get(['auto_renew_session']);
+  const result = await browser.storage.sync.get(['auto_renew_session']);
   if (result.auto_renew_session !== false) {
     await startSessionRefreshAlarm();
   }
 });
 
 // Listen for storage changes to enable/disable the alarm
-chrome.storage.onChanged.addListener(async (changes, namespace) => {
+browser.storage.onChanged.addListener(async (changes, namespace) => {
   if (namespace === 'sync' && changes.auto_renew_session) {
     const isEnabled = changes.auto_renew_session.newValue;
     
@@ -49,7 +54,7 @@ chrome.storage.onChanged.addListener(async (changes, namespace) => {
 });
 
 // Listen for alarm
-chrome.alarms.onAlarm.addListener(async (alarm) => {
+browser.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === SESSION_REFRESH_ALARM) {
     console.log('Session refresh alarm triggered');
     await refreshSession();
@@ -59,10 +64,10 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 // Start the alarm
 async function startSessionRefreshAlarm() {
   // Clear any existing alarm first
-  await chrome.alarms.clear(SESSION_REFRESH_ALARM);
+  await browser.alarms.clear(SESSION_REFRESH_ALARM);
   
   // Create alarm that fires every 60 minutes
-  await chrome.alarms.create(SESSION_REFRESH_ALARM, {
+  await browser.alarms.create(SESSION_REFRESH_ALARM, {
     delayInMinutes: 60,
     periodInMinutes: 60
   });
@@ -75,7 +80,7 @@ async function startSessionRefreshAlarm() {
 
 // Stop the alarm
 async function stopSessionRefreshAlarm() {
-  await chrome.alarms.clear(SESSION_REFRESH_ALARM);
+  await browser.alarms.clear(SESSION_REFRESH_ALARM);
   console.log('Session refresh alarm stopped');
 }
 
@@ -83,14 +88,14 @@ async function stopSessionRefreshAlarm() {
 async function refreshSession() {
   try {
     // Check if auto-renew is enabled
-    const result = await chrome.storage.sync.get(['auto_renew_session']);
+    const result = await browser.storage.sync.get(['auto_renew_session']);
     if (result.auto_renew_session === false) {
       console.log('Auto-renew is disabled, skipping refresh');
       return;
     }
     
     // Get all cookies for bugcrowd.com domain
-    const cookies = await chrome.cookies.getAll({
+    const cookies = await browser.cookies.getAll({
       domain: '.bugcrowd.com'
     });
     

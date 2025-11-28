@@ -1,10 +1,15 @@
 // Theme utility functions
+// Browser API compatibility shim for Chrome and Firefox
+if (typeof browser === 'undefined') {
+  var browser = chrome;
+}
+
 function getSystemTheme() {
   return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 function getCurrentTheme(callback) {
-  chrome.storage.sync.get(['theme_mode'], function(result) {
+  browser.storage.sync.get(['theme_mode'], function(result) {
     const themeMode = result.theme_mode || 'system';
     let actualTheme;
     
@@ -156,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const statusDiv = document.getElementById('status');
 
   // Load existing settings and apply theme
-  chrome.storage.sync.get(['openai_token', 'theme_mode', 'auto_renew_session'], function(result) {
+  browser.storage.sync.get(['openai_token', 'theme_mode', 'auto_renew_session'], function(result) {
     if (result.openai_token) {
       tokenInput.value = result.openai_token;
       testButton.disabled = false;
@@ -213,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    chrome.storage.sync.set({
+    browser.storage.sync.set({
       openai_token: token,
       // privacy_mode: privacyMode, // Privacy mode temporarily disabled
       theme_mode: themeMode,
@@ -287,7 +292,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (window.matchMedia) {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
       // Only update if user has "system" selected
-      chrome.storage.sync.get(['theme_mode'], function(result) {
+      browser.storage.sync.get(['theme_mode'], function(result) {
         const themeMode = result.theme_mode || 'system';
         if (themeMode === 'system') {
           getCurrentTheme(applyTheme);

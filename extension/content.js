@@ -1,13 +1,18 @@
 // This script will be injected into the page
+// Browser API compatibility shim for Chrome and Firefox
+if (typeof browser === 'undefined') {
+  var browser = chrome;
+}
+
 console.log("CrowdAssist content script loaded.");
 
 // Chrome API utility functions
 function safeStorageGet(keys, callback) {
   try {
-    if (chrome.runtime && chrome.runtime.id) {
-      chrome.storage.sync.get(keys, function(result) {
-        if (chrome.runtime.lastError) {
-          console.warn('CrowdAssist: Storage error:', chrome.runtime.lastError);
+    if (browser.runtime && browser.runtime.id) {
+      browser.storage.sync.get(keys, function(result) {
+        if (browser.runtime.lastError) {
+          console.warn('CrowdAssist: Storage error:', browser.runtime.lastError);
           callback(null);
           return;
         }
@@ -395,9 +400,9 @@ function loadTurndown(callback) {
   }
   
   try {
-    if (chrome.runtime && chrome.runtime.id) {
+    if (browser.runtime && browser.runtime.id) {
       const script = document.createElement('script');
-      script.src = chrome.runtime.getURL('turndown.js');
+      script.src = browser.runtime.getURL('turndown.js');
       script.onload = callback;
       script.onerror = () => {
         console.error('CrowdAssist: Failed to load turndown.js');
@@ -1179,8 +1184,8 @@ function applyPrivacyMode() {
 
 // Listen for storage changes to update privacy mode in real-time
 try {
-  if (chrome.runtime && chrome.runtime.id) {
-    chrome.storage.onChanged.addListener(function(changes, namespace) {
+  if (browser.runtime && browser.runtime.id) {
+    browser.storage.onChanged.addListener(function(changes, namespace) {
       if (changes.privacy_mode) {
         applyPrivacyMode();
       }

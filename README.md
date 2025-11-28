@@ -1,6 +1,6 @@
 # CrowdAssist
 
-CrowdAssist is a Chrome extension designed specifically for bug bounty researchers and Bug Bounty Platforms. It enhances your research workflow with AI-powered report writing, intelligent automation tools, and productivity features that save time and improve the quality of your vulnerability submissions.
+CrowdAssist is a browser extension for **Chrome** and **Firefox** designed specifically for bug bounty researchers and Bug Bounty Platforms. It enhances your research workflow with AI-powered report writing, intelligent automation tools, and productivity features that save time and improve the quality of your vulnerability submissions.
 
 Whether you're writing reports, managing submissions, or communicating with triager or program teams, CrowdAssist provides the tools you need to work more efficiently and professionally.
 
@@ -85,15 +85,52 @@ Whether you're writing reports, managing submissions, or communicating with tria
 
 ## Installation
 
-### Install CrowdAssist
+CrowdAssist uses different manifest versions for Chrome and Firefox due to browser-specific requirements. A helper script is provided to easily switch between them.
+
+### Chrome / Chromium / Edge / Brave
 
 1. Download this repository as a ZIP file and unzip it, or clone the repository.
-2. Open your Chrome browser and navigate to `chrome://extensions`.
-3. Enable "Developer mode" using the toggle in the top-right corner.
-4. Click the "Load unpacked" button.
-5. Select the `CrowdAssist` directory.
+2. **Ensure you're using the Chrome manifest** (default):
+   ```bash
+   ./switch-manifest.sh chrome
+   ```
+3. Open your browser and navigate to `chrome://extensions` (or equivalent).
+4. Enable "Developer mode" using the toggle in the top-right corner.
+5. Click the "Load unpacked" button.
+6. Select the `extension` directory.
 
-The extension is now installed and will be active on the Bug Bounty Platform pages (Refresh could be needed).
+### Firefox
+
+1. Download this repository as a ZIP file and unzip it, or clone the repository.
+2. **Switch to Firefox manifest:**
+   ```bash
+   ./switch-manifest.sh firefox
+   ```
+3. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`.
+4. Click "Load Temporary Add-on".
+5. Navigate to the `extension` directory and select `manifest.json`.
+
+> **Important:** Firefox always reads the file named `manifest.json` from the extension directory. The switch script temporarily replaces it with the Firefox-compatible version.
+
+### Switching Between Browsers
+
+When testing in both browsers during development:
+
+```bash
+# Switch to Firefox mode
+./switch-manifest.sh firefox
+
+# Switch back to Chrome mode
+./switch-manifest.sh chrome
+```
+
+The script automatically backs up and restores the correct manifest for each browser.
+
+---
+
+The extension is now installed and will be active on Bug Bounty Platform pages (Refresh could be needed).
+
+> **Technical Note:** Chrome requires Manifest V3 with service workers, while Firefox uses the more stable Manifest V2 with background scripts. The JavaScript code is identical - only the manifest differs. See [BROWSER_COMPATIBILITY.md](BROWSER_COMPATIBILITY.md) for detailed technical information.
 
 ### Configure CrowdAssist Settings
 
@@ -127,6 +164,25 @@ To use CrowdAssist's AI-powered features, you'll need an OpenAI API token:
 ## Contributing
 
 This is an open-source project. If you have ideas for new features or have found a bug, please feel free to open an issue or submit a pull request.
+
+### Development Workflow
+
+1. **Testing in Both Browsers:**
+   - Use `./switch-manifest.sh chrome` or `./switch-manifest.sh firefox` to switch between browser manifests
+   - Test all features in both browsers before submitting PRs
+
+2. **Building Distribution Packages:**
+   ```bash
+   ./build.sh
+   ```
+   This creates ready-to-distribute ZIP files in the `dist/` directory:
+   - `crowdassist-chrome.zip` - For Chrome Web Store
+   - `crowdassist-firefox.zip` - For Firefox Add-ons (AMO)
+
+3. **Code Structure:**
+   - All JavaScript files include browser API polyfills for cross-browser compatibility
+   - Manifest files are browser-specific but the codebase is shared
+   - See [BROWSER_COMPATIBILITY.md](BROWSER_COMPATIBILITY.md) for technical details
 
 ## Potential TODOs
 
