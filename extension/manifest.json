@@ -1,12 +1,14 @@
 {
   "manifest_version": 3,
   "name": "CrowdAssist",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "An assistant for Bug Bounty Researchers to help with report writing.",
   "permissions": [
     "activeTab",
     "scripting",
-    "storage"
+    "storage",
+    "cookies",
+    "alarms"
   ],
   "content_scripts": [
     {
@@ -35,8 +37,13 @@
   ],
   "host_permissions": [
     "https://api.ipify.org/",
-    "https://api.openai.com/"
+    "https://api.openai.com/",
+    "https://bugcrowd.com/*",
+    "https://login.hackers.bugcrowd.com/*"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {

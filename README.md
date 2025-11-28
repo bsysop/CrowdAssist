@@ -6,6 +6,11 @@ Whether you're writing reports, managing submissions, or communicating with tria
 
 ## Features
 
+### Session Management
+*Available globally when using Bugcrowd*
+
+- **Auto-Renew Session** - Automatically refreshes your Bugcrowd session every hour to prevent the 2-hour timeout, keeping you logged in during long research sessions
+
 ### Report Creation & Enhancement
 *Available on Bugcrowd report creation pages*
 
@@ -51,6 +56,11 @@ Whether you're writing reports, managing submissions, or communicating with tria
 ![Smart Commenting Features](https://raw.githubusercontent.com/bsysop/CrowdAssist/refs/heads/main/screenshots/comment_screen1.png)
 
 ## Changelog
+
+### v1.4.0
+- Added **Auto-Renew Session** feature to automatically refresh Bugcrowd session every hour, preventing the 2-hour timeout
+- Added **Bugcrowd Login Status** indicator in the extension popup
+- Improved session management with background service worker
 
 ### v1.3.0
 - Added **Dark Mode Support** with system default, light, and dark theme options (automatically follows your OS setting)

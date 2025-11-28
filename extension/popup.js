@@ -107,6 +107,12 @@ function applyTheme(theme) {
     helpText.style.color = styles.helpTextColor;
   });
   
+  // Apply theme to login status container (but preserve the colored status text)
+  const loginStatusContainer = document.getElementById('bugcrowd-login-status');
+  if (loginStatusContainer) {
+    loginStatusContainer.style.color = styles.labelColor;
+  }
+  
   // Apply theme to buttons
   const buttons = document.querySelectorAll('.btn');
   buttons.forEach(button => {
@@ -150,12 +156,35 @@ document.addEventListener('DOMContentLoaded', function() {
   const tokenInput = document.getElementById('openai-token');
   // const privacyModeCheckbox = document.getElementById('privacy-mode'); // Privacy mode temporarily disabled
   const themeSelect = document.getElementById('theme-mode');
+  const autoRenewCheckbox = document.getElementById('auto-renew-session');
   const saveButton = document.getElementById('save-token');
   const testButton = document.getElementById('test-token');
   const statusDiv = document.getElementById('status');
+  const loginStatusText = document.getElementById('login-status-text');
+
+  // Check Bugcrowd login status
+  async function checkBugcrowdLoginStatus() {
+    try {
+      const cookies = await chrome.cookies.getAll({
+        domain: '.bugcrowd.com'
+      });
+      
+      if (cookies && cookies.length > 0) {
+        loginStatusText.textContent = 'Connected';
+        loginStatusText.style.color = '#28a745';
+      } else {
+        loginStatusText.textContent = 'Not Connected';
+        loginStatusText.style.color = '#dc3545';
+      }
+    } catch (error) {
+      console.error('Error checking login status:', error);
+      loginStatusText.textContent = 'Unknown';
+      loginStatusText.style.color = '#6c757d';
+    }
+  }
 
   // Load existing settings and apply theme
-  chrome.storage.sync.get(['openai_token', 'theme_mode'], function(result) {
+  chrome.storage.sync.get(['openai_token', 'theme_mode', 'auto_renew_session'], function(result) {
     if (result.openai_token) {
       tokenInput.value = result.openai_token;
       testButton.disabled = false;
@@ -170,8 +199,18 @@ document.addEventListener('DOMContentLoaded', function() {
       themeSelect.value = 'system'; // Default to system
     }
     
+    // Load auto-renew session setting (default to true)
+    if (result.auto_renew_session !== undefined) {
+      autoRenewCheckbox.checked = result.auto_renew_session;
+    } else {
+      autoRenewCheckbox.checked = true; // Default enabled
+    }
+    
     // Apply the current theme
     getCurrentTheme(applyTheme);
+    
+    // Check login status
+    checkBugcrowdLoginStatus();
   });
 
   // Listen for theme changes to provide live preview
@@ -193,6 +232,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const token = tokenInput.value.trim();
     // const privacyMode = privacyModeCheckbox.checked; // Privacy mode temporarily disabled
     const themeMode = themeSelect.value;
+    const autoRenewSession = autoRenewCheckbox.checked;
     
     if (!token) {
       showStatus('Please enter a valid token', 'error');
@@ -207,7 +247,8 @@ document.addEventListener('DOMContentLoaded', function() {
     chrome.storage.sync.set({
       openai_token: token,
       // privacy_mode: privacyMode, // Privacy mode temporarily disabled
-      theme_mode: themeMode
+      theme_mode: themeMode,
+      auto_renew_session: autoRenewSession
     }, function() {
       showStatus('Settings saved successfully!', 'success');
       testButton.disabled = false;
