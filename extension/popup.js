@@ -107,12 +107,6 @@ function applyTheme(theme) {
     helpText.style.color = styles.helpTextColor;
   });
   
-  // Apply theme to login status container (but preserve the colored status text)
-  const loginStatusContainer = document.getElementById('bugcrowd-login-status');
-  if (loginStatusContainer) {
-    loginStatusContainer.style.color = styles.labelColor;
-  }
-  
   // Apply theme to buttons
   const buttons = document.querySelectorAll('.btn');
   buttons.forEach(button => {
@@ -160,28 +154,6 @@ document.addEventListener('DOMContentLoaded', function() {
   const saveButton = document.getElementById('save-token');
   const testButton = document.getElementById('test-token');
   const statusDiv = document.getElementById('status');
-  const loginStatusText = document.getElementById('login-status-text');
-
-  // Check Bugcrowd login status
-  async function checkBugcrowdLoginStatus() {
-    try {
-      const cookies = await chrome.cookies.getAll({
-        domain: '.bugcrowd.com'
-      });
-      
-      if (cookies && cookies.length > 0) {
-        loginStatusText.textContent = 'Connected';
-        loginStatusText.style.color = '#28a745';
-      } else {
-        loginStatusText.textContent = 'Not Connected';
-        loginStatusText.style.color = '#dc3545';
-      }
-    } catch (error) {
-      console.error('Error checking login status:', error);
-      loginStatusText.textContent = 'Unknown';
-      loginStatusText.style.color = '#6c757d';
-    }
-  }
 
   // Load existing settings and apply theme
   chrome.storage.sync.get(['openai_token', 'theme_mode', 'auto_renew_session'], function(result) {
@@ -208,9 +180,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Apply the current theme
     getCurrentTheme(applyTheme);
-    
-    // Check login status
-    checkBugcrowdLoginStatus();
   });
 
   // Listen for theme changes to provide live preview

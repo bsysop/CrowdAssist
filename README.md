@@ -59,7 +59,6 @@ Whether you're writing reports, managing submissions, or communicating with tria
 
 ### v1.4.0
 - Added **Auto-Renew Session** feature to automatically refresh Bugcrowd session every hour, preventing the 2-hour timeout
-- Added **Bugcrowd Login Status** indicator in the extension popup
 - Improved session management with background service worker
 
 ### v1.3.0
@@ -106,10 +105,9 @@ The Auto-Renew Session feature is **enabled by default** and works automatically
 
 - Refreshes your Bugcrowd session every hour
 - Prevents the 2-hour session timeout
-- Shows your Bugcrowd login status (Connected/Not Connected)
 - Can be toggled on/off in the extension popup
 
-> **Note:** This feature requires you to be logged into Bugcrowd. The extension will show "Not Connected" if you're not logged in.
+> **Note:** This feature works silently in the background. Make sure you're logged into Bugcrowd for it to function properly.
 
 #### Set ChatGPT API Token
 
