@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "CrowdAssist",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "An assistant for Bug Bounty Researchers to help with report writing.",
   "browser_specific_settings": {
     "gecko": {
