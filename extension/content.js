@@ -79,6 +79,53 @@ function getThemeStyles(theme) {
   }
 }
 
+// Toolbar icon SVG path data
+const CA_ICONS = {
+  globe: '<path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm5.9 7H11c-.1-2.2-.8-4.2-1.8-5.5A6.5 6.5 0 0 1 13.9 7zM8 14.5c-1.3 0-2.7-2.4-2.9-5.5h5.8c-.2 3.1-1.6 5.5-2.9 5.5zM5.1 7C5.3 3.9 6.7 1.5 8 1.5S10.7 3.9 10.9 7H5.1zM6.8 1.5C5.8 2.8 5.1 4.8 5 7H2.1A6.5 6.5 0 0 1 6.8 1.5zM2.1 9H5c.1 2.2.8 4.2 1.8 5.5A6.5 6.5 0 0 1 2.1 9zm7.1 5.5c1-1.3 1.7-3.3 1.8-5.5h2.9a6.5 6.5 0 0 1-4.7 5.5z"/>',
+  sparkle: '<path d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.829l.645-1.936zM3.794 1.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.5.845 1.018 1.018l1.162.387a.217.217 0 0 1 0 .412l-1.162.387c-.518.173-.845.5-1.018 1.018l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162c-.173-.518-.5-.845-1.018-1.018L1.227 3.127a.217.217 0 0 1 0-.412l1.162-.387c.518-.173.845-.5 1.018-1.018l.387-1.162z"/>',
+  chat: '<path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2.5a.5.5 0 0 0-.354.146L8 14.293V11.5a.5.5 0 0 0-.5-.5H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h5v3.5a.5.5 0 0 0 .854.354L11.207 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>',
+  clipboard: '<path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>',
+  docSparkle: '<path d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0zM9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1z"/><path d="M5.5 7a.5.5 0 0 1 .5.5v1.5H7.5a.5.5 0 0 1 0 1H6V11.5a.5.5 0 0 1-1 0V10H3.5a.5.5 0 0 1 0-1H5V7.5a.5.5 0 0 1 .5-.5z"/>'
+};
+
+// Toolbar helper functions
+function applyToolbarTheme(container) {
+  getCurrentTheme((theme) => { container.setAttribute('data-ca-theme', theme); });
+}
+
+function createToolbarIcon(pathData) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'ca-toolbar__icon');
+  svg.setAttribute('viewBox', '0 0 16 16');
+  svg.innerHTML = pathData;
+  return svg;
+}
+
+function createToolbarButton(id, label, iconPathData) {
+  const btn = document.createElement('button');
+  btn.id = id;
+  btn.className = 'ca-toolbar__btn';
+  btn.type = 'button';
+  if (iconPathData) btn.appendChild(createToolbarIcon(iconPathData));
+  const textSpan = document.createElement('span');
+  textSpan.className = 'ca-toolbar__btn-text';
+  textSpan.textContent = label;
+  btn.appendChild(textSpan);
+  return btn;
+}
+
+function setButtonLoading(btn, loadingText) {
+  btn.disabled = true;
+  const textSpan = btn.querySelector('.ca-toolbar__btn-text');
+  if (textSpan) { textSpan.dataset.originalText = textSpan.textContent; textSpan.textContent = loadingText; }
+}
+
+function setButtonReady(btn) {
+  btn.disabled = false;
+  const textSpan = btn.querySelector('.ca-toolbar__btn-text');
+  if (textSpan && textSpan.dataset.originalText) { textSpan.textContent = textSpan.dataset.originalText; delete textSpan.dataset.originalText; }
+}
+
 // Modal utility functions
 function createModal(content, buttons = [], callback) {
   getCurrentTheme((theme) => {
@@ -421,7 +468,8 @@ function loadTurndown(callback) {
 
 function copyReportAsMarkdown() {
   const button = document.getElementById('ca-copy-markdown-button');
-  const originalText = button.querySelector('span:last-child').textContent;
+  const textSpan = button.querySelector('.ca-toolbar__btn-text');
+  const originalText = textSpan.textContent;
 
   const turndownService = new TurndownService();
   const submissionElement = document.querySelector('.bc-helper-nopadding');
@@ -436,16 +484,12 @@ function copyReportAsMarkdown() {
 
     const markdown = turndownService.turndown(submissionClone);
     navigator.clipboard.writeText(markdown).then(() => {
-      button.querySelector('span:last-child').textContent = ' [Copied!]';
-      setTimeout(() => {
-        button.querySelector('span:last-child').textContent = originalText;
-      }, 2000);
+      textSpan.textContent = 'Copied!';
+      setTimeout(() => { textSpan.textContent = originalText; }, 2000);
     }).catch(err => {
       console.error('CrowdAssist: Failed to copy text: ', err);
-      button.querySelector('span:last-child').textContent = ' [Error!]';
-      setTimeout(() => {
-        button.querySelector('span:last-child').textContent = originalText;
-      }, 2000);
+      textSpan.textContent = 'Error!';
+      setTimeout(() => { textSpan.textContent = originalText; }, 2000);
     });
   } else {
     console.error('CrowdAssist: Could not find submission content element.');
@@ -459,37 +503,23 @@ function addCopyButton() {
   if (targetArea && !document.getElementById('ca-copy-feature-container')) {
     const featureContainer = document.createElement('div');
     featureContainer.id = 'ca-copy-feature-container';
-    featureContainer.style.display = 'flex';
-    featureContainer.style.alignItems = 'center';
+    featureContainer.className = 'ca-toolbar ca-toolbar--bordered';
     featureContainer.style.marginBottom = '5px';
 
     const label = document.createElement('span');
-    label.textContent = 'CrowdAssist:';
-    label.style.fontWeight = 'bold';
-    label.style.marginRight = '8px';
+    label.textContent = 'CrowdAssist';
+    label.className = 'ca-toolbar__label';
     featureContainer.appendChild(label);
 
-    const copyButton = document.createElement('a');
+    const divider = document.createElement('div');
+    divider.className = 'ca-toolbar__divider';
+    featureContainer.appendChild(divider);
 
-    const iconSpan = document.createElement('span');
-    iconSpan.dataset.testid = 'bc-icons';
-    iconSpan.className = 'bc-icons bc-icons--markdown-icon bc-icons--parent-color';
-    iconSpan.innerHTML = '<svg class="bc-icons__svg" viewBox="0 0 24 24" width="100%" height="100%" focusable="false" aria-hidden="true"><use href="#markdown-icon"></use></svg>';
-    iconSpan.style.marginRight = '8px';
-    copyButton.appendChild(iconSpan);
-
-    const text = document.createElement('span');
-    text.textContent = ' [Copy as Markdown]';
-    copyButton.appendChild(text);
-
-    copyButton.id = 'ca-copy-markdown-button';
-    copyButton.style.cursor = 'pointer';
-    copyButton.style.color = '#FF6900';
-    copyButton.style.display = 'flex';
-    copyButton.style.alignItems = 'center';
+    const copyButton = createToolbarButton('ca-copy-markdown-button', 'Copy as Markdown', CA_ICONS.clipboard);
     copyButton.addEventListener('click', copyReportAsMarkdown);
-    
     featureContainer.appendChild(copyButton);
+
+    applyToolbarTheme(featureContainer);
     targetArea.prepend(featureContainer);
   }
 }
@@ -572,21 +602,18 @@ function addIncludeIpButton() {
   if (referenceElement && !document.getElementById('ca-ip-feature-container')) {
     const featureContainer = document.createElement('div');
     featureContainer.id = 'ca-ip-feature-container';
-    featureContainer.className = 'panel-footer'; // Use existing class for styling
+    featureContainer.className = 'ca-toolbar';
 
     const label = document.createElement('span');
     label.textContent = 'CrowdAssist';
+    label.className = 'ca-toolbar__label';
     featureContainer.appendChild(label);
 
-    const ipButton = document.createElement('button');
-    ipButton.textContent = '[Include My IP]';
-    ipButton.id = 'ca-include-ip-button';
-    ipButton.className = 'bc-btn bc-btn--link';
-    ipButton.type = 'button';
-    ipButton.style.color = '#FF6900';
-    ipButton.style.padding = '0';
-    ipButton.style.verticalAlign = 'baseline';
-    ipButton.style.marginLeft = '10px';
+    const divider = document.createElement('div');
+    divider.className = 'ca-toolbar__divider';
+    featureContainer.appendChild(divider);
+
+    const ipButton = createToolbarButton('ca-include-ip-button', 'Include My IP', CA_ICONS.globe);
 
     ipButton.addEventListener('click', async (event) => {
       event.preventDefault();
@@ -600,7 +627,6 @@ function addIncludeIpButton() {
           const textToInsert = `My IP is: ${ip}`;
           const newText = commentBox.value ? `${commentBox.value}\n\n${textToInsert}` : textToInsert;
 
-          // Use a simpler method to set the value and dispatch an event
           commentBox.value = newText;
           commentBox.dispatchEvent(new Event('input', { bubbles: true }));
         }
@@ -610,36 +636,27 @@ function addIncludeIpButton() {
     });
 
     featureContainer.appendChild(ipButton);
+    applyToolbarTheme(featureContainer);
     referenceElement.insertAdjacentElement('afterend', featureContainer);
   }
 }
 
 function addAiReviewButton() {
   const ipFeatureContainer = document.getElementById('ca-ip-feature-container');
-  
+
   if (ipFeatureContainer && !document.getElementById('ca-ai-review-button')) {
-    const aiButton = document.createElement('button');
-    aiButton.textContent = '[AI Review Text]';
-    aiButton.id = 'ca-ai-review-button';
-    aiButton.className = 'bc-btn bc-btn--link';
-    aiButton.type = 'button';
-    aiButton.style.color = '#FF6900';
-    aiButton.style.padding = '0';
-    aiButton.style.verticalAlign = 'baseline';
-    aiButton.style.marginLeft = '10px';
+    const aiButton = createToolbarButton('ca-ai-review-button', 'AI Review Text', CA_ICONS.sparkle);
 
     aiButton.addEventListener('click', async (event) => {
       event.preventDefault();
-      
+
       const commentBox = document.querySelector('#create-comment-body');
       if (!commentBox || !commentBox.value.trim()) {
         alert('Please write some text in the comment box first.');
         return;
       }
 
-      const originalText = aiButton.textContent;
-      aiButton.textContent = '[Reviewing...]';
-      aiButton.disabled = true;
+      setButtonLoading(aiButton, 'Reviewing...');
 
       try {
         // Get the stored OpenAI token
@@ -661,7 +678,7 @@ function addAiReviewButton() {
 
         // Prepare the user message with context
         let userMessage = `This is my response to a program/triage team request. Please clean it up while keeping the same format and approach:\n\n${commentBox.value}`;
-        
+
         if (lastComment) {
           userMessage = `This is my response to a program/triage team request. Here's what they said:\n\n"${lastComment}"\n\nAnd here's my reply that needs cleaning up:\n\n${commentBox.value}\n\nPlease clean up my response while keeping the same format and approach.`;
         }
@@ -699,7 +716,6 @@ function addAiReviewButton() {
 
         // Show the improved text using modal
         showResultModal('AI Improved Text', review, () => {
-          // User wants to replace with improved text
           commentBox.value = review;
           commentBox.dispatchEvent(new Event('input', { bubbles: true }));
         });
@@ -708,8 +724,7 @@ function addAiReviewButton() {
         console.error('CrowdAssist: Failed to review text:', error);
         alert(`Failed to review text: ${error.message}`);
       } finally {
-        aiButton.textContent = originalText;
-        aiButton.disabled = false;
+        setButtonReady(aiButton);
       }
     });
 
@@ -719,24 +734,14 @@ function addAiReviewButton() {
 
 function addAutoReplyButton() {
   const ipFeatureContainer = document.getElementById('ca-ip-feature-container');
-  
+
   if (ipFeatureContainer && !document.getElementById('ca-auto-reply-button')) {
-    const autoReplyButton = document.createElement('button');
-    autoReplyButton.textContent = '[Auto-Reply]';
-    autoReplyButton.id = 'ca-auto-reply-button';
-    autoReplyButton.className = 'bc-btn bc-btn--link';
-    autoReplyButton.type = 'button';
-    autoReplyButton.style.color = '#FF6900';
-    autoReplyButton.style.padding = '0';
-    autoReplyButton.style.verticalAlign = 'baseline';
-    autoReplyButton.style.marginLeft = '10px';
+    const autoReplyButton = createToolbarButton('ca-auto-reply-button', 'Auto-Reply', CA_ICONS.chat);
 
     autoReplyButton.addEventListener('click', async (event) => {
       event.preventDefault();
-      
-      const originalText = autoReplyButton.textContent;
-      autoReplyButton.textContent = '[Generating...]';
-      autoReplyButton.disabled = true;
+
+      setButtonLoading(autoReplyButton, 'Generating...');
 
       try {
         // Get the stored OpenAI token
@@ -817,8 +822,7 @@ Generate only the response text, no additional formatting or explanations.`;
         console.error('CrowdAssist: Failed to generate auto-reply:', error);
         alert(`Failed to generate auto-reply: ${error.message}`);
       } finally {
-        autoReplyButton.textContent = originalText;
-        autoReplyButton.disabled = false;
+        setButtonReady(autoReplyButton);
       }
     });
 
@@ -834,39 +838,28 @@ function addReportCreationButtons() {
 
   // Find the panel-footer element inside markdown-field
   let panelFooter = document.querySelector('div.markdown-field div.panel-footer.bc-py-1');
-  
+
   // Fallback: try without the markdown-field prefix
   if (!panelFooter) {
     panelFooter = document.querySelector('div.panel-footer.bc-py-1');
   }
-  
+
   if (panelFooter && !document.getElementById('ca-report-creation-feature-container')) {
     const featureContainer = document.createElement('div');
     featureContainer.id = 'ca-report-creation-feature-container';
-    featureContainer.style.display = 'flex';
-    featureContainer.style.alignItems = 'center';
-    // featureContainer.style.marginBottom = '10px';
-    featureContainer.style.padding = '10px';
-    // featureContainer.style.backgroundColor = '#f8f9fa';
-    featureContainer.style.borderRadius = '4px';
-    featureContainer.style.border = '1px solid #dee2e6';
+    featureContainer.className = 'ca-toolbar ca-toolbar--bordered';
 
     const label = document.createElement('span');
     label.textContent = 'CrowdAssist';
-    label.style.fontWeight = 'bold';
-    label.style.marginRight = '10px';
+    label.className = 'ca-toolbar__label';
     featureContainer.appendChild(label);
 
+    const divider = document.createElement('div');
+    divider.className = 'ca-toolbar__divider';
+    featureContainer.appendChild(divider);
+
     // Include My IP button
-    const ipButton = document.createElement('button');
-    ipButton.textContent = '[Include My IP]';
-    ipButton.id = 'ca-report-creation-include-ip-button';
-    ipButton.className = 'bc-btn bc-btn--link';
-    ipButton.type = 'button';
-    ipButton.style.color = '#FF6900';
-    ipButton.style.padding = '0';
-    ipButton.style.verticalAlign = 'baseline';
-    ipButton.style.marginRight = '10px';
+    const ipButton = createToolbarButton('ca-report-creation-include-ip-button', 'Include My IP', CA_ICONS.globe);
 
     ipButton.addEventListener('click', async (event) => {
       event.preventDefault();
@@ -876,7 +869,7 @@ function addReportCreationButtons() {
         const ip = data.ip;
 
         // Try different possible selectors for the description field
-        const descriptionField = document.querySelector('#submission_description') || 
+        const descriptionField = document.querySelector('#submission_description') ||
                                  document.querySelector('textarea[name="description"]') ||
                                  document.querySelector('textarea[placeholder*="description"]') ||
                                  document.querySelector('textarea');
@@ -884,7 +877,7 @@ function addReportCreationButtons() {
         if (descriptionField) {
           const textToInsert = `My IP is: ${ip}`;
           const newText = descriptionField.value ? `${descriptionField.value}\n\n${textToInsert}` : textToInsert;
-          
+
           descriptionField.value = newText;
           descriptionField.dispatchEvent(new Event('input', { bubbles: true }));
         } else {
@@ -896,20 +889,12 @@ function addReportCreationButtons() {
     });
 
     // AI Review Report button
-    const aiReviewButton = document.createElement('button');
-    aiReviewButton.textContent = '[AI Review Report]';
-    aiReviewButton.id = 'ca-report-creation-ai-review-button';
-    aiReviewButton.className = 'bc-btn bc-btn--link';
-    aiReviewButton.type = 'button';
-    aiReviewButton.style.color = '#FF6900';
-    aiReviewButton.style.padding = '0';
-    aiReviewButton.style.verticalAlign = 'baseline';
-    aiReviewButton.style.marginRight = '10px';
+    const aiReviewButton = createToolbarButton('ca-report-creation-ai-review-button', 'AI Review Report', CA_ICONS.sparkle);
 
     aiReviewButton.addEventListener('click', async (event) => {
       event.preventDefault();
-      
-      const descriptionField = document.querySelector('#submission_description') || 
+
+      const descriptionField = document.querySelector('#submission_description') ||
                                document.querySelector('textarea[name="description"]') ||
                                document.querySelector('textarea[placeholder*="description"]') ||
                                document.querySelector('textarea');
@@ -919,9 +904,7 @@ function addReportCreationButtons() {
         return;
       }
 
-      const originalText = aiReviewButton.textContent;
-      aiReviewButton.textContent = '[Reviewing...]';
-      aiReviewButton.disabled = true;
+      setButtonLoading(aiReviewButton, 'Reviewing...');
 
       try {
         // Get the stored OpenAI token
@@ -988,24 +971,16 @@ Keep all technical details intact and maintain the same length roughly.`;
         console.error('CrowdAssist: Failed to review report:', error);
         alert(`Failed to review report: ${error.message}`);
       } finally {
-        aiReviewButton.textContent = originalText;
-        aiReviewButton.disabled = false;
+        setButtonReady(aiReviewButton);
       }
     });
 
     // AI Generate Report button
-    const aiGenerateButton = document.createElement('button');
-    aiGenerateButton.textContent = '[AI Generate Report]';
-    aiGenerateButton.id = 'ca-report-creation-ai-generate-button';
-    aiGenerateButton.className = 'bc-btn bc-btn--link';
-    aiGenerateButton.type = 'button';
-    aiGenerateButton.style.color = '#FF6900';
-    aiGenerateButton.style.padding = '0';
-    aiGenerateButton.style.verticalAlign = 'baseline';
+    const aiGenerateButton = createToolbarButton('ca-report-creation-ai-generate-button', 'AI Generate Report', CA_ICONS.docSparkle);
 
     aiGenerateButton.addEventListener('click', async (event) => {
       event.preventDefault();
-      
+
       // Show input modal for URL and vulnerability type
       showInputModal('Generate Vulnerability Report', [
         {
@@ -1022,9 +997,7 @@ Keep all technical details intact and maintain the same length roughly.`;
       ], async (values) => {
         const { targetUrl, vulnType } = values;
 
-        const originalText = aiGenerateButton.textContent;
-        aiGenerateButton.textContent = '[Generating...]';
-        aiGenerateButton.disabled = true;
+        setButtonLoading(aiGenerateButton, 'Generating...');
 
         try {
           // Get the stored OpenAI token
@@ -1037,7 +1010,7 @@ Keep all technical details intact and maintain the same length roughly.`;
             return;
           }
 
-          const userMessage = `Create a vulnerability report for a ${vulnType} found on ${targetUrl}. 
+          const userMessage = `Create a vulnerability report for a ${vulnType} found on ${targetUrl}.
 
 If my provided URL has parameters, make sure to include them in the report.
 
@@ -1100,7 +1073,7 @@ Requirements:
           // Show result modal with the generated report
           showResultModal('Generated Vulnerability Report', generatedReport, () => {
             // Find the description field and insert the generated report
-            const descriptionField = document.querySelector('#submission_description') || 
+            const descriptionField = document.querySelector('#submission_description') ||
                                      document.querySelector('textarea[name="description"]') ||
                                      document.querySelector('textarea[placeholder*="description"]') ||
                                      document.querySelector('textarea');
@@ -1117,8 +1090,7 @@ Requirements:
           console.error('CrowdAssist: Failed to generate report:', error);
           alert(`Failed to generate report: ${error.message}`);
         } finally {
-          aiGenerateButton.textContent = originalText;
-          aiGenerateButton.disabled = false;
+          setButtonReady(aiGenerateButton);
         }
       });
     });
@@ -1126,7 +1098,8 @@ Requirements:
     featureContainer.appendChild(ipButton);
     featureContainer.appendChild(aiReviewButton);
     featureContainer.appendChild(aiGenerateButton);
-    
+
+    applyToolbarTheme(featureContainer);
     // Insert after the panel-footer element
     panelFooter.insertAdjacentElement('afterend', featureContainer);
   }
@@ -1190,8 +1163,7 @@ try {
         applyPrivacyMode();
       }
       if (changes.theme_mode) {
-        // Theme changed - could update any open modals here if needed
-        console.log('CrowdAssist: Theme mode changed to', changes.theme_mode.newValue);
+        document.querySelectorAll('[data-ca-theme]').forEach(el => applyToolbarTheme(el));
       }
     });
   }
@@ -1205,8 +1177,7 @@ if (window.matchMedia) {
     safeStorageGet(['theme_mode'], function(result) {
       if (!result) return;
       if (result.theme_mode === 'system' || !result.theme_mode) {
-        console.log('CrowdAssist: System theme changed to', e.matches ? 'dark' : 'light');
-        // Theme changed - could update any open modals here if needed
+        document.querySelectorAll('[data-ca-theme]').forEach(el => applyToolbarTheme(el));
       }
     });
   });

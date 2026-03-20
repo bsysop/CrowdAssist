@@ -50,4 +50,38 @@ body {
 
 .ca-username-tooltip li:hover {
   background-color: #2d3748;
-} 
+}
+
+/* Theme tokens */
+[data-ca-theme="light"] {
+  --ca-toolbar-bg: #f8f9fb;
+  --ca-toolbar-border: #e2e6ea;
+  --ca-label-color: #8b919a;
+  --ca-btn-color: #FF6900;
+  --ca-btn-hover-bg: #FF6900;
+  --ca-btn-hover-color: #fff;
+  --ca-btn-active-bg: #e55a00;
+  --ca-separator-color: #e2e6ea;
+}
+[data-ca-theme="dark"] {
+  --ca-toolbar-bg: #1a1e25;
+  --ca-toolbar-border: #2d3340;
+  --ca-label-color: #6b7280;
+  --ca-btn-color: #FF6900;
+  --ca-btn-hover-bg: #FF6900;
+  --ca-btn-hover-color: #fff;
+  --ca-btn-active-bg: #e55a00;
+  --ca-separator-color: #2d3340;
+}
+
+/* Toolbar */
+.ca-toolbar { display:flex; align-items:center; gap:6px; padding:8px 12px; background:var(--ca-toolbar-bg); border-top:1px solid var(--ca-separator-color); font-size:13px; }
+.ca-toolbar--bordered { border:1px solid var(--ca-toolbar-border); border-radius:6px; }
+.ca-toolbar__label { color:var(--ca-label-color); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-right:4px; user-select:none; }
+.ca-toolbar__btn { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border:1px solid var(--ca-btn-color); border-radius:100px; background:transparent; color:var(--ca-btn-color); font-size:12px; font-weight:500; cursor:pointer; white-space:nowrap; transition:background .15s,color .15s,border-color .15s; }
+.ca-toolbar__btn:hover { background:var(--ca-btn-hover-bg); color:var(--ca-btn-hover-color); border-color:var(--ca-btn-hover-bg); }
+.ca-toolbar__btn:hover .ca-toolbar__icon { fill:var(--ca-btn-hover-color); }
+.ca-toolbar__btn:active { background:var(--ca-btn-active-bg); border-color:var(--ca-btn-active-bg); }
+.ca-toolbar__btn:disabled { opacity:0.6; cursor:not-allowed; pointer-events:none; }
+.ca-toolbar__icon { width:14px; height:14px; fill:var(--ca-btn-color); flex-shrink:0; transition:fill .15s; }
+.ca-toolbar__divider { width:1px; height:16px; background:var(--ca-separator-color); margin:0 4px; }
