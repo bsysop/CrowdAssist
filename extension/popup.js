@@ -98,13 +98,12 @@ function applyTheme(theme) {
     input.style.borderColor = styles.inputBorder;
   });
   
-  // Apply theme to select
-  const select = document.getElementById('theme-mode');
-  if (select) {
+  // Apply theme to selects
+  document.querySelectorAll('select').forEach(select => {
     select.style.backgroundColor = styles.selectBackground;
     select.style.color = styles.inputColor;
     select.style.borderColor = styles.selectBorder;
-  }
+  });
   
   // Apply theme to help text
   const helpTexts = document.querySelectorAll('.help-text');
@@ -152,90 +151,120 @@ function applyTheme(theme) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  const tokenInput = document.getElementById('openai-token');
+  const providerSelect = document.getElementById('ai-provider');
+  const openaiTokenInput = document.getElementById('openai-token');
+  const anthropicTokenInput = document.getElementById('anthropic-token');
+  const openaiGroup = document.getElementById('openai-token-group');
+  const anthropicGroup = document.getElementById('anthropic-token-group');
   // const privacyModeCheckbox = document.getElementById('privacy-mode'); // Privacy mode temporarily disabled
-  const themeSelect = document.getElementById('theme-mode');
+  const themeCheckbox = document.getElementById('theme-dark-mode');
   const autoRenewCheckbox = document.getElementById('auto-renew-session');
   const saveButton = document.getElementById('save-token');
   const testButton = document.getElementById('test-token');
   const statusDiv = document.getElementById('status');
 
+  // Tracks whether the user explicitly toggled the theme this session.
+  // While false, theme_mode stays unset so the popup keeps following the OS.
+  let themeExplicit = false;
+
+  function updateProviderVisibility() {
+    const provider = providerSelect.value;
+    openaiGroup.style.display = provider === 'openai' ? '' : 'none';
+    anthropicGroup.style.display = provider === 'anthropic' ? '' : 'none';
+
+    const currentToken = provider === 'anthropic'
+      ? anthropicTokenInput.value.trim()
+      : openaiTokenInput.value.trim();
+    testButton.disabled = !currentToken;
+  }
+
   // Load existing settings and apply theme
-  browser.storage.sync.get(['openai_token', 'theme_mode', 'auto_renew_session'], function(result) {
-    if (result.openai_token) {
-      tokenInput.value = result.openai_token;
-      testButton.disabled = false;
+  browser.storage.sync.get(
+    ['ai_provider', 'openai_token', 'anthropic_token', 'theme_mode', 'auto_renew_session'],
+    function(result) {
+      providerSelect.value = result.ai_provider || 'openai';
+      if (result.openai_token) openaiTokenInput.value = result.openai_token;
+      if (result.anthropic_token) anthropicTokenInput.value = result.anthropic_token;
+
+      if (result.theme_mode === 'dark') {
+        themeCheckbox.checked = true;
+        themeExplicit = true;
+      } else if (result.theme_mode === 'light') {
+        themeCheckbox.checked = false;
+        themeExplicit = true;
+      } else {
+        // Unset or legacy 'system' — follow OS, don't lock in a choice yet.
+        themeCheckbox.checked = getSystemTheme() === 'dark';
+        themeExplicit = false;
+      }
+
+      if (result.auto_renew_session !== undefined) {
+        autoRenewCheckbox.checked = result.auto_renew_session;
+      } else {
+        autoRenewCheckbox.checked = true;
+      }
+
+      updateProviderVisibility();
+      getCurrentTheme(applyTheme);
     }
-    // Privacy mode temporarily disabled
-    // if (result.privacy_mode) {
-    //   privacyModeCheckbox.checked = result.privacy_mode;
-    // }
-    if (result.theme_mode) {
-      themeSelect.value = result.theme_mode;
-    } else {
-      themeSelect.value = 'system'; // Default to system
-    }
-    
-    // Load auto-renew session setting (default to true)
-    if (result.auto_renew_session !== undefined) {
-      autoRenewCheckbox.checked = result.auto_renew_session;
-    } else {
-      autoRenewCheckbox.checked = true; // Default enabled
-    }
-    
-    // Apply the current theme
-    getCurrentTheme(applyTheme);
-  });
+  );
+
+  providerSelect.addEventListener('change', updateProviderVisibility);
+  openaiTokenInput.addEventListener('input', updateProviderVisibility);
+  anthropicTokenInput.addEventListener('input', updateProviderVisibility);
 
   // Listen for theme changes to provide live preview
-  themeSelect.addEventListener('change', function() {
-    const selectedTheme = this.value;
-    let actualTheme;
-    
-    if (selectedTheme === 'system') {
-      actualTheme = getSystemTheme();
-    } else {
-      actualTheme = selectedTheme;
-    }
-    
-    applyTheme(actualTheme);
+  themeCheckbox.addEventListener('change', function() {
+    themeExplicit = true;
+    applyTheme(this.checked ? 'dark' : 'light');
   });
 
   // Save settings
   saveButton.addEventListener('click', function() {
-    const token = tokenInput.value.trim();
-    // const privacyMode = privacyModeCheckbox.checked; // Privacy mode temporarily disabled
-    const themeMode = themeSelect.value;
+    const provider = providerSelect.value;
+    const openaiToken = openaiTokenInput.value.trim();
+    const anthropicToken = anthropicTokenInput.value.trim();
     const autoRenewSession = autoRenewCheckbox.checked;
-    
-    if (!token) {
-      showStatus('Please enter a valid token', 'error');
+
+    const activeToken = provider === 'anthropic' ? anthropicToken : openaiToken;
+    if (!activeToken) {
+      showStatus(`Please enter a ${provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} API token`, 'error');
       return;
     }
 
-    if (!token.startsWith('sk-')) {
-      showStatus('Token should start with "sk-"', 'error');
+    if (provider === 'openai' && !openaiToken.startsWith('sk-')) {
+      showStatus('OpenAI token should start with "sk-"', 'error');
+      return;
+    }
+    if (provider === 'anthropic' && !anthropicToken.startsWith('sk-ant-')) {
+      showStatus('Anthropic token should start with "sk-ant-"', 'error');
       return;
     }
 
-    browser.storage.sync.set({
-      openai_token: token,
-      // privacy_mode: privacyMode, // Privacy mode temporarily disabled
-      theme_mode: themeMode,
+    const payload = {
+      ai_provider: provider,
+      openai_token: openaiToken,
+      anthropic_token: anthropicToken,
       auto_renew_session: autoRenewSession
-    }, function() {
+    };
+    if (themeExplicit) {
+      payload.theme_mode = themeCheckbox.checked ? 'dark' : 'light';
+    }
+
+    browser.storage.sync.set(payload, function() {
       showStatus('Settings saved successfully!', 'success');
-      testButton.disabled = false;
-      
-      // Apply the new theme immediately
+      testButton.disabled = !activeToken;
       getCurrentTheme(applyTheme);
     });
   });
 
   // Test token
   testButton.addEventListener('click', async function() {
-    const token = tokenInput.value.trim();
-    
+    const provider = providerSelect.value;
+    const token = provider === 'anthropic'
+      ? anthropicTokenInput.value.trim()
+      : openaiTokenInput.value.trim();
+
     if (!token) {
       showStatus('Please enter a token first', 'error');
       return;
@@ -243,21 +272,49 @@ document.addEventListener('DOMContentLoaded', function() {
 
     testButton.disabled = true;
     testButton.textContent = 'Testing...';
-    
-    try {
-      const response = await fetch('https://api.openai.com/v1/models', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
 
-      if (response.ok) {
-        showStatus('Connection successful!', 'success');
+    try {
+      if (provider === 'anthropic') {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': token,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 1,
+            messages: [{ role: 'user', content: 'ping' }]
+          })
+        });
+
+        if (response.ok) {
+          showStatus('Connection successful!', 'success');
+        } else {
+          let msg = 'Invalid token';
+          try {
+            const err = await response.json();
+            if (err && err.error && err.error.message) msg = err.error.message;
+          } catch (_) {}
+          showStatus(`Error: ${msg}`, 'error');
+        }
       } else {
-        const error = await response.json();
-        showStatus(`Error: ${error.error?.message || 'Invalid token'}`, 'error');
+        const response = await fetch('https://api.openai.com/v1/models', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          showStatus('Connection successful!', 'success');
+        } else {
+          const error = await response.json();
+          showStatus(`Error: ${error.error?.message || 'Invalid token'}`, 'error');
+        }
       }
     } catch (error) {
       showStatus('Connection failed. Check your internet connection.', 'error');
@@ -288,15 +345,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 3000);
   }
   
-  // Listen for system theme changes
+  // Listen for system theme changes — only react if the user hasn't locked in a choice
   if (window.matchMedia) {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-      // Only update if user has "system" selected
       browser.storage.sync.get(['theme_mode'], function(result) {
-        const themeMode = result.theme_mode || 'system';
-        if (themeMode === 'system') {
-          getCurrentTheme(applyTheme);
-        }
+        const mode = result.theme_mode;
+        if (mode === 'light' || mode === 'dark') return; // explicit choice stored
+        const systemTheme = getSystemTheme();
+        if (!themeExplicit) themeCheckbox.checked = systemTheme === 'dark';
+        applyTheme(systemTheme);
       });
     });
   }

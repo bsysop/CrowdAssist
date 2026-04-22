@@ -28,6 +28,93 @@ function safeStorageGet(keys, callback) {
   }
 }
 
+// AI provider abstraction
+const CA_AI_DEFAULTS = {
+  openai:    { model: 'gpt-3.5-turbo',     endpoint: 'https://api.openai.com/v1/chat/completions', label: 'OpenAI' },
+  anthropic: { model: 'claude-sonnet-4-6', endpoint: 'https://api.anthropic.com/v1/messages',       label: 'Anthropic' }
+};
+
+async function callAI({ system, user, maxTokens, temperature }) {
+  const settings = await new Promise((resolve) => {
+    safeStorageGet(['ai_provider', 'openai_token', 'anthropic_token'], resolve);
+  });
+
+  const provider = (settings && settings.ai_provider) || 'openai';
+  const cfg = CA_AI_DEFAULTS[provider];
+  if (!cfg) throw new Error(`Unknown AI provider: ${provider}`);
+
+  if (provider === 'anthropic') {
+    const key = settings && settings.anthropic_token;
+    if (!key) throw new Error('Set your Anthropic API key in the extension popup first.');
+
+    const response = await fetch(cfg.endpoint, {
+      method: 'POST',
+      headers: {
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: cfg.model,
+        max_tokens: maxTokens,
+        temperature,
+        system,
+        messages: [{ role: 'user', content: user }]
+      })
+    });
+
+    if (!response.ok) {
+      let msg = `Anthropic API error (${response.status})`;
+      try {
+        const err = await response.json();
+        if (err && err.error && err.error.message) msg = `Anthropic: ${err.error.message}`;
+      } catch (_) {}
+      throw new Error(msg);
+    }
+
+    const data = await response.json();
+    const block = data && data.content && data.content.find(c => c.type === 'text');
+    if (!block || !block.text) throw new Error('Anthropic returned an empty response.');
+    return block.text;
+  }
+
+  // Default: OpenAI
+  const key = settings && settings.openai_token;
+  if (!key) throw new Error('Set your OpenAI API key in the extension popup first.');
+
+  const response = await fetch(cfg.endpoint, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${key}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: cfg.model,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user }
+      ],
+      max_tokens: maxTokens,
+      temperature
+    })
+  });
+
+  if (!response.ok) {
+    let msg = `OpenAI API error (${response.status})`;
+    try {
+      const err = await response.json();
+      if (err && err.error && err.error.message) msg = `OpenAI: ${err.error.message}`;
+    } catch (_) {}
+    throw new Error(msg);
+  }
+
+  const data = await response.json();
+  const text = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+  if (!text) throw new Error('OpenAI returned an empty response.');
+  return text;
+}
+
 // Theme utility functions
 function getSystemTheme() {
   return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -659,16 +746,6 @@ function addAiReviewButton() {
       setButtonLoading(aiButton, 'Reviewing...');
 
       try {
-        // Get the stored OpenAI token
-        const result = await new Promise((resolve) => {
-          safeStorageGet(['openai_token'], resolve);
-        });
-
-        if (!result || !result.openai_token) {
-          alert('Please set your OpenAI API token in the extension popup first.');
-          return;
-        }
-
         // Get the last comment for context
         const commentElements = document.querySelectorAll('div > div.activity-block__content > div.bc-markdown.bc-markdown--image-with-cursor.bc-markdown--bordered');
         let lastComment = '';
@@ -676,43 +753,18 @@ function addAiReviewButton() {
           lastComment = commentElements[commentElements.length - 1].textContent.trim();
         }
 
-        // Prepare the user message with context
-        let userMessage = `This is my response to a program/triage team request. Please clean it up while keeping the same format and approach:\n\n${commentBox.value}`;
+        const systemPrompt = 'You polish a bug bounty researcher\'s reply to a program/triage team comment on Bugcrowd. Fix only grammar, spelling, and awkward phrasing. Preserve the researcher\'s voice, tone, length, and markdown exactly — fenced code blocks, inline code, links, lists, and HTTP request/response snippets must remain byte-for-byte identical. Do not add new facts, promises, timelines, apologies, or politeness filler. Do not restructure sections. Return only the revised reply, with no preamble or explanation.';
 
-        if (lastComment) {
-          userMessage = `This is my response to a program/triage team request. Here's what they said:\n\n"${lastComment}"\n\nAnd here's my reply that needs cleaning up:\n\n${commentBox.value}\n\nPlease clean up my response while keeping the same format and approach.`;
-        }
+        const userMessage = lastComment
+          ? `PROGRAM COMMENT:\n"""\n${lastComment}\n"""\n\nMY DRAFT:\n"""\n${commentBox.value}\n"""\n\nReturn the polished draft.`
+          : `MY DRAFT:\n"""\n${commentBox.value}\n"""\n\nReturn the polished draft.`;
 
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${result.openai_token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'gpt-3.5-turbo',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are helping a bug bounty researcher respond to program/triage team requests. The researcher is replying to specific questions or requests from the program team. Your job is to polish their response while keeping the EXACT same format and approach. Only fix grammar, spelling, and clarity issues. DO NOT add extra information, change the structure, or make it more formal. Keep the same tone and length - just make it cleaner and more professional.'
-              },
-              {
-                role: 'user',
-                content: userMessage
-              }
-            ],
-            max_tokens: 300,
-            temperature: 0.2
-          })
+        const review = await callAI({
+          system: systemPrompt,
+          user: userMessage,
+          maxTokens: 500,
+          temperature: 0.2
         });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error?.message || 'API request failed');
-        }
-
-        const data = await response.json();
-        const review = data.choices[0].message.content;
 
         // Show the improved text using modal
         showResultModal('AI Improved Text', review, () => {
@@ -744,16 +796,6 @@ function addAutoReplyButton() {
       setButtonLoading(autoReplyButton, 'Generating...');
 
       try {
-        // Get the stored OpenAI token
-        const result = await new Promise((resolve) => {
-          safeStorageGet(['openai_token'], resolve);
-        });
-
-        if (!result || !result.openai_token) {
-          alert('Please set your OpenAI API token in the extension popup first.');
-          return;
-        }
-
         // Get the last comment for context
         const commentElements = document.querySelectorAll('div > div.activity-block__content > div.bc-markdown.bc-markdown--image-with-cursor.bc-markdown--bordered');
         let lastComment = '';
@@ -766,46 +808,16 @@ function addAutoReplyButton() {
           return;
         }
 
-        const userMessage = `You are helping a bug bounty researcher respond to comments from program/triage teams. Here's the latest comment from the program team:
+        const systemPrompt = 'You draft a short reply that a bug bounty researcher will send to a program/triage team comment on Bugcrowd. Match the register of the incoming comment — terse in, terse out; detailed in, detailed out. Acknowledge concretely what was said, answer any direct question only if the answer is obvious from the comment itself, and otherwise ask the minimum clarifying question. Never invent technical facts, exploit details, payloads, timelines, or commitments. Do not apologize gratuitously. Write in first person as the researcher. Return only the reply text, no preamble, no sign-off unless the program used one.';
 
-"${lastComment}"
+        const userMessage = `PROGRAM COMMENT:\n"""\n${lastComment}\n"""\n\nDraft my reply.`;
 
-Please generate a professional but friendly response that:
-- Acknowledges their message appropriately
-- Is concise and to the point
-- Uses a conversational but respectful tone
-- Avoids being overly formal or robotic
-- Shows engagement and willingness to help
-- Is appropriate for a bug bounty platform interaction
-
-Generate only the response text, no additional formatting or explanations.`;
-
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${result.openai_token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'gpt-3.5-turbo',
-            messages: [
-              {
-                role: 'user',
-                content: userMessage
-              }
-            ],
-            max_tokens: 200,
-            temperature: 0.3
-          })
+        const autoReply = await callAI({
+          system: systemPrompt,
+          user: userMessage,
+          maxTokens: 400,
+          temperature: 0.3
         });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error?.message || 'API request failed');
-        }
-
-        const data = await response.json();
-        const autoReply = data.choices[0].message.content;
 
         // Show the generated reply using modal
         showResultModal('AI Generated Reply', autoReply, () => {
@@ -907,59 +919,16 @@ function addReportCreationButtons() {
       setButtonLoading(aiReviewButton, 'Reviewing...');
 
       try {
-        // Get the stored OpenAI token
-        const result = await new Promise((resolve) => {
-          safeStorageGet(['openai_token'], resolve);
+        const systemPrompt = 'You edit a bug bounty vulnerability report written by the researcher. Preserve every technical fact, URL, payload, parameter name, HTTP request/response block, code block, command, and image/screenshot reference byte-for-byte. Improve only: grammar, spelling, sentence clarity, consistency of tone, and section ordering if it is obviously broken. Do not add impact claims, CVSS scores, CWE or VRT categories, CVE IDs, or remediation guidance the researcher did not already include. Keep all markdown formatting intact (headings, lists, fenced code, links, bold). Roughly preserve the original length. Return only the edited report in markdown, with no preamble, no explanation, and no wrapping code fence around the whole response.';
+
+        const userMessage = `REPORT:\n<<<\n${descriptionField.value}\n>>>\n\nReturn the edited report.`;
+
+        const improvedReport = await callAI({
+          system: systemPrompt,
+          user: userMessage,
+          maxTokens: 1500,
+          temperature: 0.2
         });
-
-        if (!result || !result.openai_token) {
-          alert('Please set your OpenAI API token in the extension popup first.');
-          return;
-        }
-
-        const userMessage = `Please review and improve this bug bounty report. Make it more professional, clear, and well-structured while maintaining all technical details:
-
-${descriptionField.value}
-
-Please improve:
-- Grammar and spelling
-- Technical clarity and accuracy
-- Structure and formatting
-- Professional tone
-- Remove any redundancy
-
-Keep all technical details intact and maintain the same length roughly.`;
-
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${result.openai_token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'gpt-3.5-turbo',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are helping a bug bounty researcher improve their vulnerability report. Focus on clarity, professionalism, and technical accuracy while maintaining all original technical details.'
-              },
-              {
-                role: 'user',
-                content: userMessage
-              }
-            ],
-            max_tokens: 1000,
-            temperature: 0.3
-          })
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error?.message || 'API request failed');
-        }
-
-        const data = await response.json();
-        const improvedReport = data.choices[0].message.content;
 
         // Show the improved report using modal
         showResultModal('AI Improved Report', improvedReport, () => {
@@ -1000,75 +969,48 @@ Keep all technical details intact and maintain the same length roughly.`;
         setButtonLoading(aiGenerateButton, 'Generating...');
 
         try {
-          // Get the stored OpenAI token
-          const result = await new Promise((resolve) => {
-            safeStorageGet(['openai_token'], resolve);
+          const systemPrompt = 'You draft a bug bounty vulnerability report skeleton for a researcher to complete before submitting to a Bugcrowd program. This is a DRAFT: wherever you would need to guess a specific fact (exact payload output, screenshot, affected parameter, authenticated vs unauthenticated, exact response body, HTTP status), write the placeholder `[verify]` instead of inventing it. Never fabricate CVE IDs, dates, logs, CVSS scores, or evidence the researcher did not provide. Use concise technical prose — no marketing language, no compliance/legal framing, no dates or timestamps. Output markdown only. Do not wrap the whole response in a code fence and do not include any preamble or trailing explanation.';
+
+          const userMessage = `Generate a report draft for the following finding. Preserve the full target URL including any query parameters.
+
+TARGET URL: ${targetUrl}
+VULNERABILITY TYPE: ${vulnType}
+
+Produce exactly these sections, in this order, in markdown:
+
+## Summary
+One short paragraph describing the vulnerability at the target. Name the affected parameter/endpoint if it is evident from the URL.
+
+## Affected Component
+- URL: the target URL
+- Parameter(s): if evident from the URL, list them; otherwise write \`[verify]\`
+- Authentication required: \`[verify]\`
+
+## Steps to Reproduce
+A numbered list. Each item is one discrete action a triager can perform. Use fenced code blocks for any request, payload, or URL. Use \`[verify]\` for the exact payload string unless it is canonical for this vulnerability class.
+
+## Proof of Concept
+A fenced code block containing a minimal HTTP request or curl command demonstrating the issue, with \`[verify]\` for any value that must be confirmed.
+
+## Impact
+2–4 sentences, plain language, describing what an attacker can realistically achieve. No compliance/legal framing. No generic severity adjectives without justification.
+
+## Suggested Remediation
+2–4 actionable bullets tailored to the vulnerability class.
+
+## References
+- Likely VRT category: \`[verify]\`
+- Likely CWE: \`[verify]\`
+- OWASP reference: \`[verify]\` (include a URL only if it is a well-known canonical OWASP page for this class)
+
+Return only the markdown above, populated.`;
+
+          const generatedReport = await callAI({
+            system: systemPrompt,
+            user: userMessage,
+            maxTokens: 1200,
+            temperature: 0.4
           });
-
-          if (!result || !result.openai_token) {
-            alert('Please set your OpenAI API token in the extension popup first.');
-            return;
-          }
-
-          const userMessage = `Create a vulnerability report for a ${vulnType} found on ${targetUrl}.
-
-If my provided URL has parameters, make sure to include them in the report.
-
-The report should include the following structure:
-
-**Summary:**
-[Brief description of the vulnerability]
-
-**Reproduction Steps:**
-1. [Step 1]
-2. [Step 2]
-3. [Continue with clear, numbered steps]
-
-**Impact:**
-[Explain the potential impact and risk, don't overcomplicate the language and don't talk about compliance or legal implications]
-
-**Fix Recommendations:**
-[Provide simple and clear remediation steps]
-
-Requirements:
-- Keep it clear and direct
-- Don't add dates or timestamps
-- Don't overcomplicate the language
-- Focus on technical accuracy
-- Make reproduction steps easy to follow
-- Provide realistic impact assessment
-- Give actionable fix recommendations`;
-
-          const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${result.openai_token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              model: 'gpt-3.5-turbo',
-              messages: [
-                {
-                  role: 'system',
-                  content: 'You are a cybersecurity expert helping create vulnerability reports for bug bounty programs. Create clear, professional, and technically accurate reports that follow industry standards. Focus on practical reproduction steps and realistic impact assessments.'
-                },
-                {
-                  role: 'user',
-                  content: userMessage
-                }
-              ],
-              max_tokens: 800,
-              temperature: 0.4
-            })
-          });
-
-          if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error?.message || 'API request failed');
-          }
-
-          const data = await response.json();
-          const generatedReport = data.choices[0].message.content;
 
           // Show result modal with the generated report
           showResultModal('Generated Vulnerability Report', generatedReport, () => {

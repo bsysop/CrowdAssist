@@ -121,6 +121,15 @@
       display: flex;
       align-items: center;
     }
+
+    select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
   </style>
 </head>
 <body>
@@ -128,10 +137,25 @@
     <h1>CrowdAssist</h1>
     <p>Bug Bounty Research Assistant</p>
   </div>
-  
+
   <div class="form-group">
+    <label for="ai-provider">AI Provider</label>
+    <select id="ai-provider">
+      <option value="openai">OpenAI (GPT-3.5)</option>
+      <option value="anthropic">Anthropic (Claude Sonnet)</option>
+    </select>
+    <div class="help-text">Choose which AI backend powers Review, Auto-Reply, and Generate.</div>
+  </div>
+
+  <div class="form-group" id="openai-token-group">
     <label for="openai-token">OpenAI API Token</label>
     <input type="password" id="openai-token" placeholder="sk-...">
+    <div class="help-text">Your token is stored locally and never shared.</div>
+  </div>
+
+  <div class="form-group" id="anthropic-token-group" style="display: none;">
+    <label for="anthropic-token">Anthropic API Token</label>
+    <input type="password" id="anthropic-token" placeholder="sk-ant-...">
     <div class="help-text">Your token is stored locally and never shared.</div>
   </div>
   
@@ -146,13 +170,11 @@
   -->
   
   <div class="form-group">
-    <label for="theme-mode">Theme</label>
-    <select id="theme-mode" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;">
-      <option value="system">System Default</option>
-      <option value="light">Light Mode</option>
-      <option value="dark">Dark Mode</option>
-    </select>
-    <div class="help-text">Choose your preferred theme for CrowdAssist modals and interface.</div>
+    <div class="checkbox-container">
+      <input type="checkbox" id="theme-dark-mode">
+      <label for="theme-dark-mode">Dark Mode</label>
+    </div>
+    <div class="help-text">Follows your system theme until you toggle this.</div>
   </div>
   
   <div class="form-group">

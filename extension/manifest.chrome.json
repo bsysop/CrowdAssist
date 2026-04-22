@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CrowdAssist",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "An assistant for Bug Bounty Researchers to help with report writing.",
   "permissions": [
     "activeTab",
@@ -38,6 +38,7 @@
   "host_permissions": [
     "https://api.ipify.org/",
     "https://api.openai.com/",
+    "https://api.anthropic.com/",
     "https://bugcrowd.com/*",
     "https://login.hackers.bugcrowd.com/*"
   ],
