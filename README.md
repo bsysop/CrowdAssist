@@ -57,31 +57,7 @@ Whether you're writing reports, managing submissions, or communicating with tria
 
 ## Changelog
 
-### v1.4.0
-- Added **Auto-Renew Session** feature to automatically refresh Bugcrowd session every hour, preventing the 2-hour timeout
-- Improved session management with background service worker
-
-### v1.3.0
-- Added **Dark Mode Support** with system default, light, and dark theme options (automatically follows your OS setting)
-- Improved **Modal Interface** with floating dialogs replacing basic prompts
-- Minor fixes
-
-### v1.2
-- Added **AI Review Text** button to improve comment text using ChatGPT
-- Added **Auto-Reply** button to generate responses to program team comments
-- Added **Report Creation helper** features for submission pages:
-  - Include My IP button for report creation pages
-  - AI Review Report button to improve vulnerability reports
-- Enhanced button placement and styling
-- Added OpenAI API integration for AI-powered features
-- Improved page detection to distinguish between report creation and visualization pages
-
-### v1.1
-- Added "Include My IP" feature to quickly add your public IP address to comments.
-
-### v1.0
-- Initial release.
-- Features: Username Mentions and Copy as Markdown.
+See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 
 ## Installation
 
