@@ -47,8 +47,8 @@ function safeStorageSet(items, callback) {
 
 // AI provider abstraction
 const CA_AI_DEFAULTS = {
-  openai:    { model: 'gpt-3.5-turbo',     endpoint: 'https://api.openai.com/v1/chat/completions', label: 'OpenAI' },
-  anthropic: { model: 'claude-sonnet-4-6', endpoint: 'https://api.anthropic.com/v1/messages',       label: 'Anthropic' }
+  openai:    { model: 'gpt-5.6-luna',    endpoint: 'https://api.openai.com/v1/chat/completions', label: 'OpenAI' },
+  anthropic: { model: 'claude-sonnet-5', endpoint: 'https://api.anthropic.com/v1/messages',      label: 'Anthropic' }
 };
 
 async function callAI({ system, user, maxTokens, temperature }) {
@@ -72,10 +72,17 @@ async function callAI({ system, user, maxTokens, temperature }) {
         'anthropic-dangerous-direct-browser-access': 'true',
         'Content-Type': 'application/json'
       },
+      // No temperature: Sonnet 5 rejects a non-default value with a 400. Tone and
+      // determinism are steered from the system prompts instead.
+      //
+      // Thinking is disabled explicitly because Sonnet 5 runs adaptive thinking
+      // when the field is omitted, and max_tokens caps thinking plus response text
+      // together. These calls budget 400-1500 tokens, so a thinking pass would
+      // truncate the reply.
       body: JSON.stringify({
         model: cfg.model,
         max_tokens: maxTokens,
-        temperature,
+        thinking: { type: 'disabled' },
         system,
         messages: [{ role: 'user', content: user }]
       })

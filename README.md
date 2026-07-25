@@ -125,7 +125,7 @@ The Auto-Renew Session feature is **enabled by default** and works automatically
 
 > **Note:** This feature works silently in the background. Make sure you're logged into Bugcrowd for it to function properly.
 
-#### Set ChatGPT API Token
+#### Set the API Token
 
 The AI features need an OpenAI API token:
 

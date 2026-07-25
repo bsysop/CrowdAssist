@@ -23,6 +23,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - The same Show/Hide toggle now appears on individual submission pages as well as the list, built from one shared helper so both look and behave the same. On a submission it sits at the top of the status column, which stays visible because submissions hide individual reward nodes rather than a container.
   - The `hide_bounties` flag is cached in memory rather than re-read from `storage.sync` on every DOM mutation, since the observer now repaints far more nodes per pass.
 
+### Changed
+- Updated both AI backends. OpenAI moves from `gpt-3.5-turbo` to `gpt-5.6-luna`, and Anthropic from `claude-sonnet-4-6` to `claude-sonnet-5`.
+  - `gpt-3.5-turbo` is deprecated and shuts down on 2026-10-23, so the OpenAI path had a hard expiry date. Luna is the cost-optimized tier of the current family; these calls are short (400-1500 max tokens) and not reasoning-heavy.
+  - `claude-sonnet-4-6` was not deprecated, but Sonnet 5 gives near-Opus quality on the same tier.
+  - The Anthropic request no longer sends `temperature`: Sonnet 5 rejects a non-default value with a 400, so a bare model swap would have broken every AI feature. Tone is steered from the system prompts, which already specify it.
+  - The Anthropic request now sets `thinking: {type: 'disabled'}` explicitly. Sonnet 5 runs adaptive thinking when the field is omitted, and `max_tokens` caps thinking plus response text together, so a thinking pass would have truncated these short replies.
+  - The OpenAI request still sends `temperature`, which that API accepts.
+
 ### Fixed
 - `setNativeValue()` threw `Cannot read properties of undefined (reading 'set')` on every call, so the formatting button never did anything in either editor. It read `Object.getOwnPropertyDescriptor(element, 'value').set` unguarded. React installs that own property in the page world, and content scripts run in an isolated world where the node has no own `value` descriptor. Both descriptor lookups are now guarded, falling back to the prototype setter, which is also the setter that makes React notice the change.
 - **Hide Bounties** no longer locks up the submissions list. `init()` is the MutationObserver callback, and the repaint assigned `textContent` to the toggle label unconditionally. That replaces the text node even when the string is identical, which emits a childList record, which re-triggers `init()`. Every write in the repaint is now conditional, so a pass that changes nothing touches nothing.
