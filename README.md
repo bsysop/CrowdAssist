@@ -1,8 +1,8 @@
 # CrowdAssist
 
-CrowdAssist is a browser extension for **Chrome** and **Firefox** designed specifically for bug bounty researchers and Bug Bounty Platforms. It enhances your research workflow with AI-powered report writing, intelligent automation tools, and productivity features that save time and improve the quality of your vulnerability submissions.
+CrowdAssist is a browser extension for **Chrome** and **Firefox** aimed at bug bounty researchers working on Bugcrowd. It adds report-writing and submission-management helpers to the pages you already use, some of them backed by an AI model.
 
-Whether you're writing reports, managing submissions, or communicating with triager or program teams, CrowdAssist provides the tools you need to work more efficiently and professionally.
+Most of it is small stuff that removes friction: exporting a report as Markdown, keeping your session from timing out, formatting images the way triage asks for, and drafting replies to program teams.
 
 ## Features
 
@@ -11,35 +11,38 @@ Whether you're writing reports, managing submissions, or communicating with tria
 
 - **Auto-Renew Session** - Automatically refreshes your Bugcrowd session every hour to prevent the 2-hour timeout, keeping you logged in during long research sessions
 
-### Report Creation & Enhancement
+### Report Creation
 *Available on Bugcrowd report creation pages*
 
 - **Include Your IP** - Insert your public IP address into reports with one click
-- **AI Report Review** ✨ - Leverage ChatGPT to analyze and improve your report for clarity, completeness, and impact
-- **Auto Create Report (Experimental)** ✨ - Generate comprehensive, well-structured vulnerability reports using AI assistance and best practices
+- **Fix Formatting** - Apply the report formatting Bugcrowd asks for. Currently prefixes every image embed with `> `; skips images already quoted and anything inside a fenced code block, and leaves non-image attachments alone
+- **AI Report Review** ✨ - Runs your draft through the AI model and suggests fixes to wording and structure
+- **Auto Create Report (Experimental)** ✨ - Drafts a full report from what you have so far. Treat the output as a starting point, not something to submit as-is
 
 ### Submission Management
 *Available on Bugcrowd submission pages*
 
 - **Copy as Markdown** - Export complete submission reports as properly formatted Markdown
-- **Triage Time Insight** - Shows how long it took from submission to Triaged, displayed under the Status panel when the submission is triaged
-- **Smart Commenting** - Enhanced commenting system with multiple productivity features:
+- **Triage Time Insight** - Shows how long triage took, displayed under the Status panel. Measured from submission to the first state change, so it appears on every decided submission (Triaged, Resolved, Unresolved, Not Applicable, Informational…) and stays hidden only while the report is still New
+- **Hide Bounties** - Toggle to hide every reward figure: the bounty sidebar and each card's reward on the submissions list, plus the reward and any reward activity on individual submission pages. Switch it from the on-page button or the synced checkbox in the popup; your choice is remembered across reloads
+- **Smart Commenting** - Additions to the comment box:
   - **Include Your IP** - Add your public IP to the report comments
+  - **Fix Formatting** - Apply the report formatting Bugcrowd asks for. Currently prefixes every image embed with `> `; skips images already quoted and anything inside a fenced code block, and leaves non-image attachments alone
   - **Username Mentions** - Type `@` + name for autocomplete of Program Managers or Platform Team
-  - **AI Review Text** ✨ - Polish your comments using ChatGPT for professional, clear and effective communication
-  - **Auto-Reply** ✨ - Generate contextual responses to program team comments with AI assistance (Need to be validated by yourself)
+  - **AI Review Text** ✨ - Cleans up grammar and phrasing in a comment without changing what you said
+  - **Auto-Reply** ✨ - Drafts a response to the last program team comment. Read it before you send it
 
 ## Screenshots
 
 ### Copy Markdown
 
-*Effortlessly export submission reports as formatted Markdown*
+*Exporting a submission report as Markdown*
 
 ![Copy as Markdown Feature](https://raw.githubusercontent.com/bsysop/CrowdAssist/refs/heads/main/screenshots/report_copy_as_markdown.png)
 
 ### Report Creation
 
-*AI-powered report enhancement and creation tools*
+*Review and drafting tools on the report creation page*
 
 ![AI Report Review](https://raw.githubusercontent.com/bsysop/CrowdAssist/refs/heads/main/screenshots/report_screen1.png)
 
@@ -49,7 +52,7 @@ Whether you're writing reports, managing submissions, or communicating with tria
 
 ### Submission Management
 
-*Enhanced commenting system with multiple productivity features*
+*The comment box additions*
 
 ![AI Reply and Text Review](https://raw.githubusercontent.com/bsysop/CrowdAssist/refs/heads/main/screenshots/comment_screen2.png)
 
@@ -124,7 +127,7 @@ The Auto-Renew Session feature is **enabled by default** and works automatically
 
 #### Set ChatGPT API Token
 
-To use CrowdAssist's AI-powered features, you'll need an OpenAI API token:
+The AI features need an OpenAI API token:
 
 1. Get your API token from [OpenAI's platform](https://platform.openai.com/api-keys)
 2. Click the CrowdAssist icon in your browser and enter your API token
@@ -139,7 +142,7 @@ To use CrowdAssist's AI-powered features, you'll need an OpenAI API token:
 
 ## Contributing
 
-This is an open-source project. If you have ideas for new features or have found a bug, please feel free to open an issue or submit a pull request.
+This is an open-source project. If you have an idea for a feature or you found a bug, open an issue or send a pull request.
 
 ### Development Workflow
 
@@ -170,10 +173,10 @@ This is an open-source project. If you have ideas for new features or have found
 
 ## Privacy Note
 
-CrowdAssist only accesses information on Bug Bounty Platform pages to enhance your workflow, such as usernames for autocomplete and submission content for report export. 
+CrowdAssist only reads data on Bug Bounty Platform pages, such as usernames for autocomplete and submission content for report export.
 
 **Session Management:** The Auto-Renew Session feature reads your Bugcrowd session cookies to maintain your login session. These cookies are only used to send refresh requests to Bugcrowd's servers and are never transmitted elsewhere.
 
 **API Token:** Your OpenAI API token is stored locally in your browser and never shared externally. 
 
-No sensitive data is collected, transmitted to third parties, or stored by the extension. The complete source code is available for transparency and auditing. 
+The extension does not collect or store your data, and it sends nothing to third parties. The source is all here if you want to check.

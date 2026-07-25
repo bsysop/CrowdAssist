@@ -158,6 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const anthropicGroup = document.getElementById('anthropic-token-group');
   // const privacyModeCheckbox = document.getElementById('privacy-mode'); // Privacy mode temporarily disabled
   const themeCheckbox = document.getElementById('theme-dark-mode');
+  const hideBountiesCheckbox = document.getElementById('hide-bounties');
   const autoRenewCheckbox = document.getElementById('auto-renew-session');
   const saveButton = document.getElementById('save-token');
   const testButton = document.getElementById('test-token');
@@ -180,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Load existing settings and apply theme
   browser.storage.sync.get(
-    ['ai_provider', 'openai_token', 'anthropic_token', 'theme_mode', 'auto_renew_session'],
+    ['ai_provider', 'openai_token', 'anthropic_token', 'theme_mode', 'auto_renew_session', 'hide_bounties'],
     function(result) {
       providerSelect.value = result.ai_provider || 'openai';
       if (result.openai_token) openaiTokenInput.value = result.openai_token;
@@ -204,6 +205,8 @@ document.addEventListener('DOMContentLoaded', function() {
         autoRenewCheckbox.checked = true;
       }
 
+      hideBountiesCheckbox.checked = !!result.hide_bounties;
+
       updateProviderVisibility();
       getCurrentTheme(applyTheme);
     }
@@ -217,6 +220,12 @@ document.addEventListener('DOMContentLoaded', function() {
   themeCheckbox.addEventListener('change', function() {
     themeExplicit = true;
     applyTheme(this.checked ? 'dark' : 'light');
+  });
+
+  // Hide Bounties is a live toggle: persist immediately so the on-page button
+  // and the open submissions list page update right away via storage.onChanged.
+  hideBountiesCheckbox.addEventListener('change', function() {
+    browser.storage.sync.set({ hide_bounties: this.checked });
   });
 
   // Save settings

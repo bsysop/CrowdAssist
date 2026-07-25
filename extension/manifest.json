@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CrowdAssist",
-  "version": "1.6.0",
+  "version": "1.8.0",
   "description": "An assistant for Bug Bounty Researchers to help with report writing.",
   "permissions": [
     "activeTab",
@@ -13,7 +13,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://bugcrowd.com/submissions/*",
+        "https://bugcrowd.com/submissions*",
         "https://bugcrowd.com/engagements/*/submissions/*"
       ],
       "js": [

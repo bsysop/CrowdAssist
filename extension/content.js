@@ -28,6 +28,23 @@ function safeStorageGet(keys, callback) {
   }
 }
 
+function safeStorageSet(items, callback) {
+  try {
+    if (browser.runtime && browser.runtime.id) {
+      browser.storage.sync.set(items, function() {
+        if (browser.runtime.lastError) {
+          console.warn('CrowdAssist: Storage set error:', browser.runtime.lastError);
+        }
+        if (callback) callback();
+      });
+    } else {
+      console.warn('CrowdAssist: Extension context invalidated');
+    }
+  } catch (error) {
+    console.warn('CrowdAssist: Chrome API error:', error);
+  }
+}
+
 // AI provider abstraction
 const CA_AI_DEFAULTS = {
   openai:    { model: 'gpt-3.5-turbo',     endpoint: 'https://api.openai.com/v1/chat/completions', label: 'OpenAI' },
@@ -172,7 +189,9 @@ const CA_ICONS = {
   sparkle: '<path d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.829l.645-1.936zM3.794 1.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.5.845 1.018 1.018l1.162.387a.217.217 0 0 1 0 .412l-1.162.387c-.518.173-.845.5-1.018 1.018l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162c-.173-.518-.5-.845-1.018-1.018L1.227 3.127a.217.217 0 0 1 0-.412l1.162-.387c.518-.173.845-.5 1.018-1.018l.387-1.162z"/>',
   chat: '<path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2.5a.5.5 0 0 0-.354.146L8 14.293V11.5a.5.5 0 0 0-.5-.5H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h5v3.5a.5.5 0 0 0 .854.354L11.207 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>',
   clipboard: '<path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>',
-  docSparkle: '<path d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0zM9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1z"/><path d="M5.5 7a.5.5 0 0 1 .5.5v1.5H7.5a.5.5 0 0 1 0 1H6V11.5a.5.5 0 0 1-1 0V10H3.5a.5.5 0 0 1 0-1H5V7.5a.5.5 0 0 1 .5-.5z"/>'
+  docSparkle: '<path d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0zM9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1z"/><path d="M5.5 7a.5.5 0 0 1 .5.5v1.5H7.5a.5.5 0 0 1 0 1H6V11.5a.5.5 0 0 1-1 0V10H3.5a.5.5 0 0 1 0-1H5V7.5a.5.5 0 0 1 .5-.5z"/>',
+  format: '<path d="M12 12a1 1 0 0 0 1-1V8.558a1 1 0 0 0-1-1h-1.388q0-.527.062-1.054.093-.558.31-.992t.559-.683q.34-.279.868-.279V3q-.868 0-1.52.372a3.3 3.3 0 0 0-1.085.992 4.9 4.9 0 0 0-.62 1.458A7.7 7.7 0 0 0 9 7.558V11a1 1 0 0 0 1 1zm-6 0a1 1 0 0 0 1-1V8.558a1 1 0 0 0-1-1H4.612q0-.527.062-1.054.094-.558.31-.992.217-.434.559-.683.34-.279.868-.279V3q-.868 0-1.52.372a3.3 3.3 0 0 0-1.085.992 4.9 4.9 0 0 0-.62 1.458A7.7 7.7 0 0 0 3 7.558V11a1 1 0 0 0 1 1z"/>',
+  eyeSlash: '<path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/><path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/><path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>'
 };
 
 // Toolbar helper functions
@@ -416,16 +435,35 @@ function isReportVisualizationPage() {
   return url.match(/\/submissions\/[a-f0-9\-]{36}$/) && !url.includes('/engagements/');
 }
 
-function setNativeValue(element, value) {
-  const valueSetter = Object.getOwnPropertyDescriptor(element, 'value').set;
-  const prototype = Object.getPrototypeOf(element);
-  const prototypeValueSetter = Object.getOwnPropertyDescriptor(prototype, 'value').set;
+// Right-hand sidebar column on the submissions list page (the "bounties" panel)
+const HIDE_BOUNTIES_SELECTOR = '#content > main > div > div > div.container.bc-mt-4 > section > div > div.row > div.col-md-4.col-md-push-8.col-xl-3.col-xl-push-9';
 
-  if (valueSetter && valueSetter !== prototypeValueSetter) {
-    prototypeValueSetter.call(element, value);
+// Check if we're on the submissions LIST page: exactly /submissions or /submissions/
+// (not /submissions/<uuid> detail pages, not /engagements/.../submissions)
+function isSubmissionsListPage() {
+  return /^\/submissions\/?$/.test(window.location.pathname);
+}
+
+// Writes a value the way React will notice. Going through the prototype setter
+// bypasses React's own value tracker, so the tracker's cached value stays stale and
+// the dispatched input event registers as a real change.
+//
+// Both descriptor lookups must be guarded. React installs its own "value" property on
+// the node, but that lives in the page world — from the extension's isolated world
+// there is no own descriptor and the lookup returns undefined. Dereferencing .set on
+// it is what used to throw on every click.
+function setNativeValue(element, value) {
+  const ownSetter = (Object.getOwnPropertyDescriptor(element, 'value') || {}).set;
+  const prototypeSetter = (Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value') || {}).set;
+
+  if (prototypeSetter && ownSetter !== prototypeSetter) {
+    prototypeSetter.call(element, value);
+  } else if (ownSetter) {
+    ownSetter.call(element, value);
   } else {
-    valueSetter.call(element, value);
+    element.value = value;
   }
+
   element.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
@@ -611,56 +649,40 @@ function addCopyButton() {
   }
 }
 
-// Calculate and display time from submission to triaged
-function addTriagedTimeIndicator() {
-  // Avoid duplicates; also clean up any old container id from previous implementation
-  const existing = document.getElementById('ca-triage-time-indicator');
-  if (existing) {
-    return;
+// Reads the server-rendered props for the submission page. Bugcrowd mounts it from
+// <div data-react-class="ResearcherSubmission" data-react-props="{...}"> and leaves
+// the attribute in place after mounting, so it stays readable from here.
+function getSubmissionProps() {
+  const root = document.querySelector('[data-react-class="ResearcherSubmission"]');
+  if (!root) {
+    return null;
   }
-  const oldExisting = document.getElementById('ca-triage-time-container');
-  if (oldExisting) {
-    oldExisting.remove();
+  try {
+    return JSON.parse(root.getAttribute('data-react-props'));
+  } catch (error) {
+    console.warn('CrowdAssist: could not parse submission props', error);
+    return null;
   }
+}
 
-  // Check current Status badge text is exactly "Triaged"
-  const statusSpan = document.querySelector('#researcher-submission > div.row > div.col-md-3.col-md-push-9 > div:nth-child(1) > p:nth-child(2) > span');
-  if (!statusSpan) {
-    return;
-  }
-  const statusText = statusSpan.textContent ? statusSpan.textContent.trim() : '';
-  if (statusText !== 'Triaged') {
-    return;
-  }
+// Returns the oldest activity of the given key. Activities come back newest-first
+// within a page, so on a paginated feed the oldest ones sit on the last page.
+async function fetchOldestActivity(feedUrl, key) {
+  const getPage = (page) => fetch(`${feedUrl}?page=${page}`, {
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' }
+  }).then((response) => response.json());
 
-  // Get submission time
-  const submissionTimeEl = document.querySelector('#researcher-submission > div.row > div.col-md-9.col-md-pull-3 > div > ul > li > ul > li:nth-child(2) > div.col-md-9.cc-tabular-nums > time');
-  const submissionDateStr = submissionTimeEl && submissionTimeEl.getAttribute('datetime');
-  const submissionDate = submissionDateStr ? new Date(submissionDateStr) : null;
+  const firstPage = await getPage(1);
+  const totalPages = firstPage.paginationMeta && firstPage.paginationMeta.totalPages;
+  const page = totalPages > 1 ? await getPage(totalPages) : firstPage;
 
-  if (!submissionDate) {
-    return; // Cannot compute without submission date
-  }
+  const matches = (page.activities || []).filter((activity) => activity.key === key);
+  return matches.length ? matches[matches.length - 1] : null;
+}
 
-  // Find triaged activity block and its time
-  const triageBadge = document.querySelector('.activity-block__content .bc-badge--triaged');
-  if (!triageBadge) {
-    return; // Not triaged yet
-  }
-  const triageBlock = triageBadge.closest('.activity-block__content');
-  if (!triageBlock) {
-    return;
-  }
-  const triageTimeEl = triageBlock.querySelector('.cc-datetime-stamp__absolute time') || triageBlock.querySelector('time');
-  const triageDateStr = triageTimeEl && triageTimeEl.getAttribute('datetime');
-  const triageDate = triageDateStr ? new Date(triageDateStr) : null;
-  if (!triageDate) {
-    return;
-  }
-
-  // Compute duration
-  const diffMs = Math.max(0, triageDate.getTime() - submissionDate.getTime());
-  const minutes = Math.floor(diffMs / 60000);
+function formatDuration(diffMs) {
+  const minutes = Math.floor(Math.max(0, diffMs) / 60000);
   const days = Math.floor(minutes / (60 * 24));
   const hours = Math.floor((minutes % (60 * 24)) / 60);
   const mins = minutes % 60;
@@ -669,18 +691,97 @@ function addTriagedTimeIndicator() {
   if (days > 0) parts.push(`${days}d`);
   if (hours > 0) parts.push(`${hours}h`);
   parts.push(`${mins}m`);
-  const formatted = parts.join(' ');
+  return parts.join(' ');
+}
 
-  // Build indicator right below the Status span
+// init() re-runs on every DOM mutation, so remember what we already resolved rather
+// than re-fetching the feed dozens of times per page. Cleared to null on failures so
+// a transient error gets retried.
+let triageIndicatorState = null; // { submissionId, status: 'pending'|'done'|'none', text, title }
+
+function insertTriageIndicator(text, title) {
+  const anchor = document.querySelector('#researcher-submission > div.row > div.col-md-3.col-md-push-9 > div:nth-child(1) > p:nth-child(2) > span');
+  if (!anchor || document.getElementById('ca-triage-time-indicator')) {
+    return;
+  }
+
   const indicator = document.createElement('div');
   indicator.id = 'ca-triage-time-indicator';
-  indicator.textContent = `Triaged in ${formatted}`;
-  indicator.title = `Submitted: ${submissionDate.toString()}\nTriaged: ${triageDate.toString()}`;
+  indicator.textContent = text;
+  indicator.title = title;
   indicator.style.marginTop = '4px';
   indicator.style.fontSize = '12px';
   indicator.style.color = '#6b7280';
 
-  statusSpan.insertAdjacentElement('afterend', indicator);
+  anchor.insertAdjacentElement('afterend', indicator);
+}
+
+// Show how long triage took: submission through to the first state transition.
+// Keying off the transition rather than the "Triaged" badge covers every decided
+// submission — plenty go straight to Unresolved / Not Applicable / Informational and
+// never pass through Triaged at all. No transition means it is still New, so nothing
+// is shown.
+async function addTriagedTimeIndicator() {
+  // Clean up the container id used by an earlier implementation
+  const oldExisting = document.getElementById('ca-triage-time-container');
+  if (oldExisting) {
+    oldExisting.remove();
+  }
+
+  const props = getSubmissionProps();
+  const submission = props && props.submissionDetailProps && props.submissionDetailProps.submission;
+  const submissionId = submission && submission.id;
+  if (!submissionId || !props.activityFeedUrl) {
+    return;
+  }
+
+  if (triageIndicatorState && triageIndicatorState.submissionId === submissionId) {
+    // Already resolved for this submission. Re-insert if a re-render dropped the node.
+    if (triageIndicatorState.status === 'done') {
+      insertTriageIndicator(triageIndicatorState.text, triageIndicatorState.title);
+    }
+    return;
+  }
+
+  // Claim this submission synchronously, before the first await.
+  triageIndicatorState = { submissionId, status: 'pending' };
+
+  const submittedTimeEl = document.querySelector('#researcher-submission > div.row > div.col-md-9.col-md-pull-3 > div > ul > li > ul > li:nth-child(2) > div.col-md-9.cc-tabular-nums > time');
+  const submittedStr = submission.submitted_at || (submittedTimeEl && submittedTimeEl.getAttribute('datetime'));
+  const submittedDate = submittedStr ? new Date(submittedStr) : null;
+  if (!submittedDate || isNaN(submittedDate.getTime())) {
+    triageIndicatorState = null;
+    return;
+  }
+
+  let transition;
+  try {
+    transition = await fetchOldestActivity(props.activityFeedUrl, 'submission.transitioned');
+  } catch (error) {
+    console.warn('CrowdAssist: could not load the activity feed', error);
+    triageIndicatorState = null;
+    return;
+  }
+
+  if (!transition) {
+    // Still New — triage has not made a decision yet.
+    triageIndicatorState = { submissionId, status: 'none' };
+    return;
+  }
+
+  const triageDate = new Date(transition.created_at);
+  if (isNaN(triageDate.getTime())) {
+    triageIndicatorState = null;
+    return;
+  }
+
+  const outcome = transition.params && transition.params.substate;
+  const text = `Triaged in ${formatDuration(triageDate.getTime() - submittedDate.getTime())}`;
+  const title = `Submitted: ${submittedDate.toString()}\nTriaged: ${triageDate.toString()}`
+    + (outcome ? `\nOutcome: ${outcome}` : '');
+
+  triageIndicatorState = { submissionId, status: 'done', text, title };
+  insertTriageIndicator(text, title);
 }
 
 function addIncludeIpButton() {
@@ -725,6 +826,110 @@ function addIncludeIpButton() {
     featureContainer.appendChild(ipButton);
     applyToolbarTheme(featureContainer);
     referenceElement.insertAdjacentElement('afterend', featureContainer);
+  }
+}
+
+// Bugcrowd embeds an image as `![name](url "name")` and any other attachment as
+// `[name](url "name")` — the leading "!" is the only difference, so keying on it is
+// what keeps PDFs and logs from being quoted too. Filenames are encodeURI'd, which
+// leaves parentheses intact ("Screenshot (1).png"), so match on the ends of the line
+// rather than trying to parse the URL.
+function isImageLine(line) {
+  return line.startsWith('![') && line.endsWith(')');
+}
+
+// Bugcrowd's report standard wants image embeds prefixed with "> ". Lines that are
+// already quoted are left alone, which makes this safe to run repeatedly. Content
+// inside fenced code blocks is skipped — reports routinely paste raw markdown, HTTP
+// requests and payloads in fences, where the text is literal and must not be rewritten.
+function quoteImageLines(text) {
+  let count = 0;
+  let inFence = false;
+
+  const lines = text.split('\n').map((line) => {
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+      inFence = !inFence;
+      return line;
+    }
+
+    if (inFence || !trimmed || trimmed.startsWith('>') || !isImageLine(trimmed)) {
+      return line;
+    }
+
+    count++;
+    return `> ${trimmed}`;
+  });
+
+  return { text: lines.join('\n'), count };
+}
+
+function flashButtonLabel(btn, message) {
+  const textSpan = btn.querySelector('.ca-toolbar__btn-text');
+  if (!textSpan || textSpan.dataset.caFlashing) return;
+
+  const original = textSpan.textContent;
+  textSpan.dataset.caFlashing = 'true';
+  textSpan.textContent = message;
+  setTimeout(() => {
+    textSpan.textContent = original;
+    delete textSpan.dataset.caFlashing;
+  }, 1600);
+}
+
+// Report standardisation rules Bugcrowd asks for. Each takes the editor text and
+// returns { text, count }, so adding a rule is one entry here.
+const CA_FORMAT_RULES = [
+  { name: 'quote-images', apply: quoteImageLines }
+];
+
+function applyFormatRules(text) {
+  return CA_FORMAT_RULES.reduce((acc, rule) => {
+    const result = rule.apply(acc.text);
+    return { text: result.text, count: acc.count + result.count };
+  }, { text, count: 0 });
+}
+
+// The editor is a React-controlled textarea, so the value has to go through
+// setNativeValue for React's onChange to see it. Assigning .value directly (as the
+// older insertion paths do) can leave React holding the pre-click text, which would
+// silently send the unformatted version when the user clicks straight through to Send.
+function fixFormattingIn(textarea, btn) {
+  if (!textarea) {
+    flashButtonLabel(btn, 'No editor found');
+    return;
+  }
+
+  const { text, count } = applyFormatRules(textarea.value || '');
+  if (count === 0) {
+    flashButtonLabel(btn, 'Nothing to fix');
+    return;
+  }
+
+  setNativeValue(textarea, text);
+  flashButtonLabel(btn, count === 1 ? '1 fix applied' : `${count} fixes applied`);
+}
+
+function getReportDescriptionField() {
+  return document.querySelector('#submission_description') ||
+         document.querySelector('textarea[name="description"]') ||
+         document.querySelector('textarea[placeholder*="description"]') ||
+         document.querySelector('textarea');
+}
+
+function addFixFormattingButton() {
+  const ipFeatureContainer = document.getElementById('ca-ip-feature-container');
+
+  if (ipFeatureContainer && !document.getElementById('ca-fix-formatting-button')) {
+    const formatButton = createToolbarButton('ca-fix-formatting-button', 'Fix Formatting', CA_ICONS.format);
+
+    formatButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      fixFormattingIn(document.querySelector('#create-comment-body'), formatButton);
+    });
+
+    ipFeatureContainer.appendChild(formatButton);
   }
 }
 
@@ -1037,7 +1242,16 @@ Return only the markdown above, populated.`;
       });
     });
 
+    // Fix Formatting button
+    const formatButton = createToolbarButton('ca-report-creation-fix-formatting-button', 'Fix Formatting', CA_ICONS.format);
+
+    formatButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      fixFormattingIn(getReportDescriptionField(), formatButton);
+    });
+
     featureContainer.appendChild(ipButton);
+    featureContainer.appendChild(formatButton);
     featureContainer.appendChild(aiReviewButton);
     featureContainer.appendChild(aiGenerateButton);
 
@@ -1097,12 +1311,138 @@ function applyPrivacyMode() {
   });
 }
 
+// Hide Bounties: blank out every reward figure — the sidebar totals on the
+// submissions list, the reward on each submission card, and on an individual
+// submission both the sidebar figure and any "rewarded $X" activity entries. They all
+// share span.bc-reward, including the "N points" and "Still being assessed" variants:
+// leaving those visible while blanking the amounts would still show which submissions
+// were paid.
+// Every write here has to be conditional. init() is the MutationObserver callback,
+// and assigning textContent replaces the text node even when the string is identical,
+// which emits a childList record and re-triggers init() — an unbroken loop that locks
+// up the renderer. A pass that changes nothing must touch nothing.
+function updateHideBountiesButtonState(btn, hidden) {
+  const textSpan = btn.querySelector('.ca-toolbar__btn-text');
+  const label = hidden ? 'Show Bounties' : 'Hide Bounties';
+  if (textSpan && textSpan.textContent !== label) {
+    textSpan.textContent = label;
+  }
+
+  btn.classList.toggle('ca-toolbar__btn--active', hidden);
+
+  const pressed = hidden ? 'true' : 'false';
+  if (btn.getAttribute('aria-pressed') !== pressed) {
+    btn.setAttribute('aria-pressed', pressed);
+  }
+}
+
+function setHiddenStyle(element, hidden) {
+  const next = hidden ? 'hidden' : ''; // '' restores the page default
+  if (element.style.visibility !== next) {
+    element.style.visibility = next;
+  }
+}
+
+// init() re-runs on every DOM mutation, so cache the flag instead of hitting
+// storage.sync each time while touching every reward node on the page. The
+// storage.onChanged listener below refreshes it when the setting is toggled.
+let hideBountiesCached = null;
+
+function paintHideBounties(hidden) {
+  const sidebar = document.querySelector(HIDE_BOUNTIES_SELECTOR);
+  if (sidebar) {
+    setHiddenStyle(sidebar, hidden);
+  }
+
+  document.querySelectorAll('span.bc-reward').forEach((element) => {
+    setHiddenStyle(element, hidden);
+  });
+
+  const btn = document.getElementById('ca-hide-bounties-button');
+  if (btn) updateHideBountiesButtonState(btn, hidden);
+}
+
+function applyHideBounties() {
+  if (hideBountiesCached !== null) {
+    paintHideBounties(hideBountiesCached);
+    return;
+  }
+
+  safeStorageGet(['hide_bounties'], function(result) {
+    if (!result) return;
+    hideBountiesCached = !!result.hide_bounties;
+    paintHideBounties(hideBountiesCached);
+  });
+}
+
+// One control shared by the submissions list and individual submissions, so the
+// toggle looks and behaves the same wherever it appears. Only one exists per page, so
+// the ids stay unique and paintHideBounties() updates whichever is present.
+function buildHideBountiesToolbar() {
+  const featureContainer = document.createElement('div');
+  featureContainer.id = 'ca-hide-bounties-feature-container';
+  featureContainer.className = 'ca-toolbar ca-toolbar--bordered';
+  featureContainer.style.marginBottom = '12px';
+
+  const label = document.createElement('span');
+  label.textContent = 'CrowdAssist';
+  label.className = 'ca-toolbar__label';
+  featureContainer.appendChild(label);
+
+  const divider = document.createElement('div');
+  divider.className = 'ca-toolbar__divider';
+  featureContainer.appendChild(divider);
+
+  const toggleButton = createToolbarButton('ca-hide-bounties-button', 'Hide Bounties', CA_ICONS.eyeSlash);
+  toggleButton.addEventListener('click', () => {
+    // Only write storage; the onChanged listener re-applies and updates the button.
+    safeStorageGet(['hide_bounties'], function(result) {
+      safeStorageSet({ hide_bounties: !(result && result.hide_bounties) });
+    });
+  });
+  featureContainer.appendChild(toggleButton);
+
+  applyToolbarTheme(featureContainer);
+  return featureContainer;
+}
+
+function addHideBountiesButton() {
+  if (document.getElementById('ca-hide-bounties-feature-container')) return;
+
+  if (isSubmissionsListPage()) {
+    const targetEl = document.querySelector(HIDE_BOUNTIES_SELECTOR);
+    if (!targetEl) return; // sidebar not rendered yet
+
+    const row = targetEl.closest('.row');
+    if (!row) return;
+
+    // Sits outside the sidebar column, which is the element that gets hidden
+    row.insertAdjacentElement('beforebegin', buildHideBountiesToolbar());
+    applyHideBounties();
+    return;
+  }
+
+  if (isReportVisualizationPage()) {
+    // Submissions hide individual span.bc-reward nodes rather than a container, so a
+    // toolbar in the status column stays visible while bounties are hidden
+    const sidebar = document.querySelector('#researcher-submission > div.row > div.col-md-3.col-md-push-9');
+    if (!sidebar) return;
+
+    sidebar.insertAdjacentElement('afterbegin', buildHideBountiesToolbar());
+    applyHideBounties();
+  }
+}
+
 // Listen for storage changes to update privacy mode in real-time
 try {
   if (browser.runtime && browser.runtime.id) {
     browser.storage.onChanged.addListener(function(changes, namespace) {
       if (changes.privacy_mode) {
         applyPrivacyMode();
+      }
+      if (changes.hide_bounties) {
+        hideBountiesCached = !!changes.hide_bounties.newValue;
+        paintHideBounties(hideBountiesCached);
       }
       if (changes.theme_mode) {
         document.querySelectorAll('[data-ca-theme]').forEach(el => applyToolbarTheme(el));
@@ -1128,7 +1468,11 @@ if (window.matchMedia) {
 function init() {
   // Apply privacy mode
   applyPrivacyMode();
-  
+
+  // Rewards show up on the submissions list and on individual submissions, so this
+  // runs regardless of page type
+  applyHideBounties();
+
   // Add buttons based on page type
   if (isReportCreationPage()) {
     // Report creation pages: /engagements/.../submissions/new or /engagements/.../submissions/UUID/edit
@@ -1137,17 +1481,23 @@ function init() {
     // Report visualization pages: /submissions/UUID
     addCopyButton();
     addTriagedTimeIndicator();
+    addHideBountiesButton();
     addIncludeIpButton();
+    addFixFormattingButton();
     addAiReviewButton();
     addAutoReplyButton();
+  } else if (isSubmissionsListPage()) {
+    // Submissions list page: /submissions
+    addHideBountiesButton();
   } else {
     // Regular comment/interaction pages
     addCopyButton();
     addIncludeIpButton();
+    addFixFormattingButton();
     addAiReviewButton();
     addAutoReplyButton();
   }
-  
+
   const commentBox = document.querySelector('#create-comment-body');
 
   if (!commentBox || commentBox.dataset.caInit) {
