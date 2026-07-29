@@ -27,31 +27,6 @@ body {
   background-color: #2d3748;
 }
 
-.ca-username-tooltip {
-  position: absolute;
-  background-color: #12151a;
-  color: #f7fafc;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  list-style: none;
-  margin: 0;
-  padding: 4px 0;
-  z-index: 1000;
-  max-height: 150px;
-  width: 200px;
-  overflow-y: auto;
-}
-
-.ca-username-tooltip li {
-  padding: 4px 8px;
-  cursor: pointer;
-}
-
-.ca-username-tooltip li:hover {
-  background-color: #2d3748;
-}
-
 /* Theme tokens */
 [data-ca-theme="light"] {
   --ca-toolbar-bg: #f8f9fb;
@@ -62,6 +37,15 @@ body {
   --ca-btn-hover-color: #fff;
   --ca-btn-active-bg: #e55a00;
   --ca-separator-color: #e2e6ea;
+  --ca-input-bg: #fff;
+  --ca-input-border: rgba(0, 0, 0, 0.28);
+  --ca-input-color: #23282d;
+  --ca-input-placeholder: #8b919a;
+  --ca-menu-bg: #fff;
+  --ca-menu-fg: #23282d;
+  --ca-menu-border: rgba(0, 0, 0, 0.16);
+  --ca-menu-hover-bg: #f2f4f7;
+  --ca-menu-muted: #8b919a;
 }
 [data-ca-theme="dark"] {
   --ca-toolbar-bg: #1a1e25;
@@ -72,6 +56,107 @@ body {
   --ca-btn-hover-color: #fff;
   --ca-btn-active-bg: #e55a00;
   --ca-separator-color: #2d3340;
+  --ca-input-bg: #12151a;
+  --ca-input-border: rgba(255, 255, 255, 0.48);
+  --ca-input-color: #dee1e3;
+  --ca-input-placeholder: #8b929b;
+  --ca-menu-bg: #1a1e25;
+  --ca-menu-fg: #dee1e3;
+  --ca-menu-border: rgba(255, 255, 255, 0.18);
+  --ca-menu-hover-bg: #262b34;
+  --ca-menu-muted: #8b929b;
+}
+
+/* Searchable target picker.
+   Metrics mirror Bugcrowd's own .bc-dropdown__select so the swap is invisible:
+   42px tall, Inter 14px, 8px radius, 12px/10px padding, border-box. */
+.ca-combo { position: relative; width: 100%; }
+
+.ca-combo__input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 42px;
+  padding: 12px 32px 12px 10px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--ca-input-color);
+  background: var(--ca-input-bg);
+  border: 1px solid var(--ca-input-border);
+  border-radius: 8px;
+  outline: none;
+}
+.ca-combo__input::placeholder { color: var(--ca-input-placeholder); }
+.ca-combo__input:focus { border-color: var(--ca-btn-color); box-shadow: 0 0 0 1px var(--ca-btn-color); }
+
+.ca-combo__chevron {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--ca-input-placeholder);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* Above the mention tooltip (1000), below the modal overlay (10000). */
+.ca-combo__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 1200;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  max-height: 280px;
+  overflow-y: auto;
+  color: var(--ca-menu-fg);
+  background: var(--ca-menu-bg);
+  border: 1px solid var(--ca-menu-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  font-size: 14px;
+}
+.ca-combo__menu[hidden] { display: none; }
+
+.ca-combo__option {
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ca-combo__option.is-active { background: var(--ca-menu-hover-bg); }
+.ca-combo__option.is-selected { font-weight: 600; }
+.ca-combo__match { background: transparent; color: var(--ca-btn-color); font-weight: 600; }
+.ca-combo__empty { padding: 8px 12px; color: var(--ca-menu-muted); }
+
+.ca-combo__native-row {
+  padding: 8px 12px;
+  margin-top: 4px;
+  border-top: 1px solid var(--ca-menu-border);
+  color: var(--ca-menu-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+.ca-combo__native-row:hover { background: var(--ca-menu-hover-bg); }
+
+/* Bugcrowd draws its own arrow on the wrapper; ours would sit under it. */
+.ca-combo-host::after { display: none !important; }
+
+/* The native select is required, and Chrome refuses to submit a form whose invalid
+   required control is not focusable ("... is not focusable"). So it stays rendered and
+   focusable — just invisible and inert — rather than display:none. */
+.ca-combo-host .ca-combo-native {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Toolbar */

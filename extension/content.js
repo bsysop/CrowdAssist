@@ -459,7 +459,12 @@ function isSubmissionsListPage() {
 // the node, but that lives in the page world — from the extension's isolated world
 // there is no own descriptor and the lookup returns undefined. Dereferencing .set on
 // it is what used to throw on every click.
-function setNativeValue(element, value) {
+//
+// Which events to fire depends on the control. A textarea only needs "input"; a <select>
+// needs "change", because that is the event React maps onChange to for a select. Measured
+// on the submission form's Target field: assigning .value alone leaves React's own value
+// prop at "", so the field looks set but submits empty against its required attribute.
+function setNativeValue(element, value, eventNames = ['input']) {
   const ownSetter = (Object.getOwnPropertyDescriptor(element, 'value') || {}).set;
   const prototypeSetter = (Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value') || {}).set;
 
@@ -471,7 +476,7 @@ function setNativeValue(element, value) {
     element.value = value;
   }
 
-  element.dispatchEvent(new Event('input', { bubbles: true }));
+  eventNames.forEach((name) => element.dispatchEvent(new Event(name, { bubbles: true })));
 }
 
 function getUsernames() {
@@ -836,42 +841,6 @@ function addIncludeIpButton() {
   }
 }
 
-// Bugcrowd embeds an image as `![name](url "name")` and any other attachment as
-// `[name](url "name")` — the leading "!" is the only difference, so keying on it is
-// what keeps PDFs and logs from being quoted too. Filenames are encodeURI'd, which
-// leaves parentheses intact ("Screenshot (1).png"), so match on the ends of the line
-// rather than trying to parse the URL.
-function isImageLine(line) {
-  return line.startsWith('![') && line.endsWith(')');
-}
-
-// Bugcrowd's report standard wants image embeds prefixed with "> ". Lines that are
-// already quoted are left alone, which makes this safe to run repeatedly. Content
-// inside fenced code blocks is skipped — reports routinely paste raw markdown, HTTP
-// requests and payloads in fences, where the text is literal and must not be rewritten.
-function quoteImageLines(text) {
-  let count = 0;
-  let inFence = false;
-
-  const lines = text.split('\n').map((line) => {
-    const trimmed = line.trim();
-
-    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
-      inFence = !inFence;
-      return line;
-    }
-
-    if (inFence || !trimmed || trimmed.startsWith('>') || !isImageLine(trimmed)) {
-      return line;
-    }
-
-    count++;
-    return `> ${trimmed}`;
-  });
-
-  return { text: lines.join('\n'), count };
-}
-
 function flashButtonLabel(btn, message) {
   const textSpan = btn.querySelector('.ca-toolbar__btn-text');
   if (!textSpan || textSpan.dataset.caFlashing) return;
@@ -885,17 +854,76 @@ function flashButtonLabel(btn, message) {
   }, 1600);
 }
 
-// Report standardisation rules Bugcrowd asks for. Each takes the editor text and
-// returns { text, count }, so adding a rule is one entry here.
-const CA_FORMAT_RULES = [
-  { name: 'quote-images', apply: quoteImageLines }
-];
+// Lists what each rule changed and what could not be auto-fixed, so the user approves the
+// rewrite before it lands. Populated through the DOM rather than an HTML string: warning
+// messages quote the report back, and createModal assigns its argument to innerHTML.
+function showFormatPreviewModal(applied, warnings, total, onApply) {
+  getCurrentTheme((theme) => {
+    const styles = getThemeStyles(theme);
+    const heading = total === 0
+      ? 'Style Guide Check'
+      : `Style Guide Fixes (${total})`;
 
-function applyFormatRules(text) {
-  return CA_FORMAT_RULES.reduce((acc, rule) => {
-    const result = rule.apply(acc.text);
-    return { text: result.text, count: acc.count + result.count };
-  }, { text, count: 0 });
+    const shell = `
+      <h3 style="margin: 0 0 4px 0; color: ${styles.color};">${heading}</h3>
+      <div style="font-size: 11px; opacity: 0.7; margin-bottom: 16px; color: ${styles.color};">
+        Bugcrowd Pen Test Submission Style Guide v1.1
+      </div>
+      <div id="ca-format-list" style="background: ${styles.codeBackground}; padding: 14px 16px; border-radius: 4px; max-height: 380px; overflow-y: auto; font-size: 13px; line-height: 1.7; color: ${styles.color};"></div>
+    `;
+
+    createModal(shell, [
+      { text: 'Cancel', onClick: () => {} },
+      {
+        text: total === 0 ? 'Close' : `Apply ${total} ${total === 1 ? 'Fix' : 'Fixes'}`,
+        primary: true,
+        onClick: () => { if (total > 0) onApply(); }
+      }
+    ], (modal) => {
+      const list = modal.querySelector('#ca-format-list');
+      if (!list) return;
+
+      const row = (mark, markColor, label, tail) => {
+        const line = document.createElement('div');
+        line.style.cssText = 'display: flex; gap: 8px; align-items: baseline;';
+
+        const icon = document.createElement('span');
+        icon.textContent = mark;
+        icon.style.cssText = `color: ${markColor}; flex: 0 0 auto;`;
+
+        const body = document.createElement('span');
+        body.textContent = label;
+        body.style.cssText = 'flex: 1 1 auto;';
+
+        line.appendChild(icon);
+        line.appendChild(body);
+
+        if (tail) {
+          const count = document.createElement('span');
+          count.textContent = tail;
+          count.style.cssText = 'flex: 0 0 auto; opacity: 0.6; font-variant-numeric: tabular-nums;';
+          line.appendChild(count);
+        }
+
+        list.appendChild(line);
+      };
+
+      applied.forEach((rule) => row('✓', '#3fb950', rule.label, String(rule.count)));
+
+      if (applied.length === 0) {
+        row('·', styles.color, 'No formatting changes needed', '');
+      }
+
+      if (warnings.length > 0) {
+        const divider = document.createElement('div');
+        divider.style.cssText = `margin: 12px 0 8px 0; padding-top: 10px; border-top: 1px solid ${styles.inputBorder}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.6;`;
+        divider.textContent = 'Needs your attention — not auto-fixed';
+        list.appendChild(divider);
+
+        warnings.forEach((warning) => row('⚠', '#d29922', `Line ${warning.line} — ${warning.message}`, ''));
+      }
+    });
+  });
 }
 
 // The editor is a React-controlled textarea, so the value has to go through
@@ -908,14 +936,21 @@ function fixFormattingIn(textarea, btn) {
     return;
   }
 
-  const { text, count } = applyFormatRules(textarea.value || '');
-  if (count === 0) {
+  const { applyFormatRules, scanFormatWarnings } = window.CrowdAssistFormat;
+  const { text, applied, total } = applyFormatRules(textarea.value || '');
+  // Warnings are scanned against the fixed text so their line numbers match what the
+  // user sees once Apply lands, not the draft they are replacing.
+  const warnings = scanFormatWarnings(text);
+
+  if (total === 0 && warnings.length === 0) {
     flashButtonLabel(btn, 'Nothing to fix');
     return;
   }
 
-  setNativeValue(textarea, text);
-  flashButtonLabel(btn, count === 1 ? '1 fix applied' : `${count} fixes applied`);
+  showFormatPreviewModal(applied, warnings, total, () => {
+    setNativeValue(textarea, text);
+    flashButtonLabel(btn, total === 1 ? '1 fix applied' : `${total} fixes applied`);
+  });
 }
 
 function getReportDescriptionField() {
@@ -1054,6 +1089,292 @@ function addAutoReplyButton() {
   }
 }
 
+// The Target picker on the submission form. Verified markup:
+//   div.bc-form__group > label.bc-label + div.bc-dropdown.bc-dropdown--block > select#submission_target_id
+// The first three are the real thing; the last is a shape match for a renamed field.
+function getTargetSelect() {
+  return document.getElementById('submission_target_id') ||
+         document.querySelector('select[name="submission[target_id]"]') ||
+         document.querySelector('select[name*="target"]') ||
+         Array.from(document.querySelectorAll('select'))
+           .find((select) => /select target/i.test(((select.options[0] || {}).text) || '')) ||
+         null;
+}
+
+// Case-insensitive substring match, rendered with the matched run marked. Substring rather
+// than the prefix match the @-mention tooltip uses, because every target here shares a base
+// domain — searching "cloudtrace" has to find it inside "http://cloudtrace2.example.com/".
+function renderOptionLabel(li, text, query) {
+  const at = query ? text.toLowerCase().indexOf(query.toLowerCase()) : -1;
+
+  if (at === -1) {
+    li.textContent = text;
+    return;
+  }
+
+  li.textContent = '';
+  li.appendChild(document.createTextNode(text.slice(0, at)));
+  const hit = document.createElement('mark');
+  hit.className = 'ca-combo__match';
+  hit.textContent = text.slice(at, at + query.length);
+  li.appendChild(hit);
+  li.appendChild(document.createTextNode(text.slice(at + query.length)));
+}
+
+function addSearchableTargetSelect() {
+  if (document.getElementById('ca-target-combo')) return;
+
+  const select = getTargetSelect();
+  const host = select && select.parentElement;
+  if (!select || !host) return;
+
+  // Opted out for this page load. Without this the next mutation tick would rebuild the
+  // widget a frame after "Use the original dropdown" removed it.
+  if (select.dataset.caComboOff) return;
+
+  // Flagged as wired, but our node is gone — React re-rendered the field and dropped the
+  // sibling it did not own. Reset and rebuild, or the native select stays hidden behind
+  // nothing and the target becomes unselectable.
+  if (select.dataset.caCombo) {
+    host.classList.remove('ca-combo-host');
+    select.classList.remove('ca-combo-native');
+    delete select.dataset.caCombo;
+  }
+
+  // Read live on every render rather than snapshotting at build time. React populates this
+  // select asynchronously and re-renders it later, so a snapshot taken on the wrong tick
+  // sticks forever — observed as a picker that opened with zero rows. Eight options is
+  // nothing to re-read; correctness wins over saving the walk.
+  const currentOptions = () => Array.from(select.options).filter((option) => option.value !== '');
+  const placeholderOption = () => Array.from(select.options).find((option) => option.value === '');
+
+  const placeholder = placeholderOption();
+  if (currentOptions().length === 0) return;
+
+  select.dataset.caCombo = 'true';
+  host.classList.add('ca-combo-host');
+  select.classList.add('ca-combo-native');
+
+  const combo = document.createElement('div');
+  combo.id = 'ca-target-combo';
+  combo.className = 'ca-combo';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'ca-combo__input';
+  input.setAttribute('role', 'combobox');
+  input.setAttribute('aria-expanded', 'false');
+  input.setAttribute('aria-controls', 'ca-target-combo-menu');
+  input.setAttribute('aria-autocomplete', 'list');
+  input.setAttribute('autocomplete', 'off');
+  input.placeholder = placeholder ? placeholder.text : 'Search targets…';
+
+  const chevron = document.createElement('span');
+  chevron.className = 'ca-combo__chevron';
+  chevron.setAttribute('aria-hidden', 'true');
+  chevron.innerHTML = '<svg viewBox="0 0 20 20" width="10" height="10"><path d="M4.5 7l5.5 6 5.5-6z" fill="currentColor"/></svg>';
+
+  const menu = document.createElement('ul');
+  menu.id = 'ca-target-combo-menu';
+  menu.className = 'ca-combo__menu';
+  menu.setAttribute('role', 'listbox');
+  menu.hidden = true;
+
+  combo.appendChild(input);
+  combo.appendChild(chevron);
+  combo.appendChild(menu);
+
+  let open = false;
+  let activeIndex = -1;
+  let visible = [];
+  let echoGuard = false;
+
+  const selectedText = () => {
+    const option = select.options[select.selectedIndex];
+    return option && option.value !== '' ? option.text : '';
+  };
+
+  // init() is the MutationObserver callback, so an unconditional write here would emit a
+  // record, re-enter init(), and spin. Nothing is touched unless it actually differs.
+  const setInputValue = (next) => {
+    if (input.value !== next) input.value = next;
+  };
+
+  function restoreNative(message) {
+    host.classList.remove('ca-combo-host');
+    select.classList.remove('ca-combo-native');
+    delete select.dataset.caCombo;
+    select.dataset.caComboOff = 'true';
+    select.removeEventListener('change', onExternalChange);
+    document.removeEventListener('mousedown', onDocumentDown, true);
+    combo.remove();
+    if (message) console.warn('CrowdAssist:', message);
+  }
+
+  function close() {
+    if (!open) return;
+    open = false;
+    activeIndex = -1;
+    menu.hidden = true;
+    input.setAttribute('aria-expanded', 'false');
+  }
+
+  function setActive(index) {
+    activeIndex = index;
+    Array.from(menu.querySelectorAll('.ca-combo__option')).forEach((li, i) => {
+      const isActive = i === index;
+      const flag = isActive ? 'true' : 'false';
+      // Conditional, like every other write that runs under the MutationObserver — an
+      // identical assignment still emits a record and re-enters init().
+      if (li.classList.contains('is-active') !== isActive) li.classList.toggle('is-active', isActive);
+      if (li.getAttribute('aria-selected') !== flag) li.setAttribute('aria-selected', flag);
+      if (isActive) li.scrollIntoView({ block: 'nearest' });
+    });
+  }
+
+  function commit(option) {
+    echoGuard = true;
+    setNativeValue(select, option.value, ['input', 'change']);
+    echoGuard = false;
+
+    // The write is only believable if it survived. React owns this select, so a future
+    // change to how Bugcrowd binds it would otherwise leave a picker that looks like it
+    // works and silently submits nothing.
+    if (select.value !== option.value) {
+      restoreNative('could not set the target through the searchable picker, restored the original dropdown');
+      return;
+    }
+
+    setInputValue(option.text);
+    close();
+  }
+
+  function render() {
+    const options = currentOptions();
+    const query = input.value.trim();
+    const current = selectedText();
+    // A closed-then-reopened box shows everything rather than filtering by the text it is
+    // already displaying, which would otherwise show a single row.
+    const effective = query === current ? '' : query;
+
+    visible = effective
+      ? options.filter((option) => option.text.toLowerCase().includes(effective.toLowerCase()))
+      : options.slice();
+
+    menu.textContent = '';
+
+    if (visible.length === 0) {
+      const empty = document.createElement('li');
+      empty.className = 'ca-combo__empty';
+      empty.textContent = 'No target matches “' + effective + '”';
+      menu.appendChild(empty);
+    }
+
+    visible.forEach((option, i) => {
+      const li = document.createElement('li');
+      li.className = 'ca-combo__option';
+      li.setAttribute('role', 'option');
+      li.setAttribute('aria-selected', 'false');
+      li.dataset.value = option.value;
+      renderOptionLabel(li, option.text, effective);
+      if (option.value === select.value) li.classList.add('is-selected');
+      li.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+        commit(option);
+      });
+      li.addEventListener('mouseenter', () => setActive(i));
+      menu.appendChild(li);
+    });
+
+    // A native <select> popup cannot be opened from script, so the only real fallback is to
+    // hand the original control back. Living in the menu puts it where someone looks when
+    // the search is not finding what they want.
+    const escape = document.createElement('li');
+    escape.className = 'ca-combo__native-row';
+    escape.textContent = 'Use the original dropdown';
+    escape.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+      restoreNative(null);
+    });
+    menu.appendChild(escape);
+
+    setActive(visible.length > 0 ? 0 : -1);
+  }
+
+  function openMenu() {
+    if (!open) {
+      open = true;
+      menu.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+    }
+    render();
+  }
+
+  function onExternalChange() {
+    if (echoGuard) return;
+    setInputValue(selectedText());
+  }
+
+  function onDocumentDown(event) {
+    if (!combo.contains(event.target)) close();
+  }
+
+  input.addEventListener('focus', openMenu);
+  input.addEventListener('click', openMenu);
+  input.addEventListener('input', openMenu);
+
+  chevron.addEventListener('mousedown', (event) => {
+    event.preventDefault();
+    if (open) { close(); return; }
+    input.focus();
+    openMenu();
+  });
+
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (!open) { openMenu(); return; }
+      if (visible.length === 0) return;
+      const step = event.key === 'ArrowDown' ? 1 : -1;
+      setActive((activeIndex + step + visible.length) % visible.length);
+      return;
+    }
+
+    if (event.key === 'Home' || event.key === 'End') {
+      if (!open || visible.length === 0) return;
+      event.preventDefault();
+      setActive(event.key === 'Home' ? 0 : visible.length - 1);
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      if (!open || activeIndex < 0 || !visible[activeIndex]) return;
+      event.preventDefault();
+      commit(visible[activeIndex]);
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      if (!open) return;
+      event.preventDefault();
+      setInputValue(selectedText());
+      close();
+      return;
+    }
+
+    if (event.key === 'Tab') {
+      close();
+    }
+  });
+
+  select.addEventListener('change', onExternalChange);
+  document.addEventListener('mousedown', onDocumentDown, true);
+
+  setInputValue(selectedText());
+  applyToolbarTheme(combo);
+  select.insertAdjacentElement('afterend', combo);
+}
+
 function addReportCreationButtons() {
   // Only add buttons on report creation pages
   if (!isReportCreationPage()) {
@@ -1183,34 +1504,37 @@ function addReportCreationButtons() {
         try {
           const systemPrompt = 'You draft a bug bounty vulnerability report skeleton for a researcher to complete before submitting to a Bugcrowd program. This is a DRAFT: wherever you would need to guess a specific fact (exact payload output, screenshot, affected parameter, authenticated vs unauthenticated, exact response body, HTTP status), write the placeholder `[verify]` instead of inventing it. Never fabricate CVE IDs, dates, logs, CVSS scores, or evidence the researcher did not provide. Use concise technical prose — no marketing language, no compliance/legal framing, no dates or timestamps. Output markdown only. Do not wrap the whole response in a code fence and do not include any preamble or trailing explanation.';
 
+          // Section titles are bold, never "##". Bugcrowd's Pen Test Submission Style
+          // Guide reserves markdown headers for the platform itself, so generating them
+          // here would emit output that the Fix Formatting button has to undo.
           const userMessage = `Generate a report draft for the following finding. Preserve the full target URL including any query parameters.
 
 TARGET URL: ${targetUrl}
 VULNERABILITY TYPE: ${vulnType}
 
-Produce exactly these sections, in this order, in markdown:
+Produce exactly these sections, in this order, in markdown. Section titles use bold (\`**Title**\`) — never markdown headers (\`#\`, \`##\`), which Bugcrowd reserves for the platform. Write in the third person throughout; never "I" or "you".
 
-## Summary
+**Summary**
 One short paragraph describing the vulnerability at the target. Name the affected parameter/endpoint if it is evident from the URL.
 
-## Affected Component
+**Affected Component**
 - URL: the target URL
 - Parameter(s): if evident from the URL, list them; otherwise write \`[verify]\`
 - Authentication required: \`[verify]\`
 
-## Steps to Reproduce
-A numbered list. Each item is one discrete action a triager can perform. Use fenced code blocks for any request, payload, or URL. Use \`[verify]\` for the exact payload string unless it is canonical for this vulnerability class.
+**Steps to Reproduce**
+A numbered list. Each item is one discrete action a triager can perform. Use fenced code blocks for any request, payload, or URL. Use \`[verify]\` for the exact payload string unless it is canonical for this vulnerability class. Do not start a step with "Now" or "Then". Do not end a list item with a period.
 
-## Proof of Concept
+**Proof of Concept (PoC)**
 A fenced code block containing a minimal HTTP request or curl command demonstrating the issue, with \`[verify]\` for any value that must be confirmed.
 
-## Impact
+**Impact**
 2–4 sentences, plain language, describing what an attacker can realistically achieve. No compliance/legal framing. No generic severity adjectives without justification.
 
-## Suggested Remediation
+**Remediation**
 2–4 actionable bullets tailored to the vulnerability class.
 
-## References
+**References**
 - Likely VRT category: \`[verify]\`
 - Likely CWE: \`[verify]\`
 - OWASP reference: \`[verify]\` (include a URL only if it is a well-known canonical OWASP page for this class)
@@ -1484,6 +1808,7 @@ function init() {
   if (isReportCreationPage()) {
     // Report creation pages: /engagements/.../submissions/new or /engagements/.../submissions/UUID/edit
     addReportCreationButtons();
+    addSearchableTargetSelect();
   } else if (isReportVisualizationPage()) {
     // Report visualization pages: /submissions/UUID
     addCopyButton();

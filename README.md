@@ -14,8 +14,9 @@ Most of it is small stuff that removes friction: exporting a report as Markdown,
 ### Report Creation
 *Available on Bugcrowd report creation pages*
 
+- **Searchable Target** - The Target dropdown becomes a search box. Type any part of a hostname to filter the scope list instead of scrolling a column of near-identical URLs, with the match highlighted and full keyboard control (arrows, Enter, Escape, Home/End). The real dropdown is still underneath and one click away via "Use the original dropdown" at the bottom of the list
 - **Include Your IP** - Insert your public IP address into reports with one click
-- **Fix Formatting** - Apply the report formatting Bugcrowd asks for. Currently prefixes every image embed with `> `; skips images already quoted and anything inside a fenced code block, and leaves non-image attachments alone
+- **Fix Formatting** - Rewrites your draft to Bugcrowd's *Pen Test Submission Style Guide v1.1*. 28 rules run locally with no AI, API key or token cost: markdown headers become bold, code blocks and screenshots get the `>` tab treatment, lists are renumbered and take the style their section calls for, slang and italics go, and greetings, "Please" and "reach out with questions" are stripped. A preview lists every rule that fired before anything is written, alongside warnings it will *not* auto-fix — credentials in the report, single-item lists, undocumented screenshots, undefined acronyms and combined steps. Safe to press repeatedly; fenced code, `snake_case` and attachment embeds are never touched
 - **AI Report Review** ✨ - Runs your draft through the AI model and suggests fixes to wording and structure
 - **Auto Create Report (Experimental)** ✨ - Drafts a full report from what you have so far. Treat the output as a starting point, not something to submit as-is
 
@@ -27,7 +28,7 @@ Most of it is small stuff that removes friction: exporting a report as Markdown,
 - **Hide Bounties** - Toggle to hide every reward figure: the bounty sidebar and each card's reward on the submissions list, plus the reward and any reward activity on individual submission pages. Switch it from the on-page button or the synced checkbox in the popup; your choice is remembered across reloads
 - **Smart Commenting** - Additions to the comment box:
   - **Include Your IP** - Add your public IP to the report comments
-  - **Fix Formatting** - Apply the report formatting Bugcrowd asks for. Currently prefixes every image embed with `> `; skips images already quoted and anything inside a fenced code block, and leaves non-image attachments alone
+  - **Fix Formatting** - The same style guide pass as the report editor, applied to your comment draft
   - **Username Mentions** - Type `@` + name for autocomplete of Program Managers or Platform Team
   - **AI Review Text** ✨ - Cleans up grammar and phrasing in a comment without changing what you said
   - **Auto-Reply** ✨ - Drafts a response to the last program team comment. Read it before you send it
