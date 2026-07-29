@@ -1159,20 +1159,42 @@ function addSearchableTargetSelect() {
   combo.id = 'ca-target-combo';
   combo.className = 'ca-combo';
 
+  // The magnifier is the only thing telling anyone this field can be typed into — without
+  // it the widget is pixel-identical to the select it replaced, and the feature goes
+  // undiscovered.
+  const searchIcon = document.createElement('span');
+  searchIcon.className = 'ca-combo__search';
+  searchIcon.setAttribute('aria-hidden', 'true');
+  searchIcon.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13"><path d="M7 1a6 6 0 1 0 3.71 10.71l3.29 3.29 1.41-1.41-3.29-3.29A6 6 0 0 0 7 1zm0 1.6A4.4 4.4 0 1 1 7 11.4 4.4 4.4 0 0 1 7 2.6z" fill="currentColor"/></svg>';
+
   const input = document.createElement('input');
   input.type = 'text';
+  input.id = 'ca-target-combo-input';
   input.className = 'ca-combo__input';
   input.setAttribute('role', 'combobox');
   input.setAttribute('aria-expanded', 'false');
   input.setAttribute('aria-controls', 'ca-target-combo-menu');
   input.setAttribute('aria-autocomplete', 'list');
   input.setAttribute('autocomplete', 'off');
-  input.placeholder = placeholder ? placeholder.text : 'Search targets…';
+  // The page's <label for="submission_target_id"> points at the select we hid, so without
+  // this the combobox reaches a screen reader unnamed.
+  const pageLabel = document.querySelector('label[for="' + select.id + '"]');
+  input.setAttribute('aria-label', (pageLabel ? pageLabel.textContent.trim() : 'Target') + ' — search or select');
+  input.placeholder = 'Search or select a target…';
+
+  // Restores the one thing the native select could do that the combobox could not: go back
+  // to nothing selected.
+  const clearButton = document.createElement('button');
+  clearButton.type = 'button';
+  clearButton.className = 'ca-combo__clear';
+  clearButton.setAttribute('aria-label', 'Clear the selected target');
+  clearButton.hidden = true;
+  clearButton.innerHTML = '<svg viewBox="0 0 16 16" width="11" height="11"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>';
 
   const chevron = document.createElement('span');
   chevron.className = 'ca-combo__chevron';
   chevron.setAttribute('aria-hidden', 'true');
-  chevron.innerHTML = '<svg viewBox="0 0 20 20" width="10" height="10"><path d="M4.5 7l5.5 6 5.5-6z" fill="currentColor"/></svg>';
+  chevron.innerHTML = '<svg viewBox="0 0 20 20" width="12" height="12"><path d="M4.5 7l5.5 6 5.5-6z" fill="currentColor"/></svg>';
 
   const menu = document.createElement('ul');
   menu.id = 'ca-target-combo-menu';
@@ -1180,7 +1202,9 @@ function addSearchableTargetSelect() {
   menu.setAttribute('role', 'listbox');
   menu.hidden = true;
 
+  combo.appendChild(searchIcon);
   combo.appendChild(input);
+  combo.appendChild(clearButton);
   combo.appendChild(chevron);
   combo.appendChild(menu);
 
@@ -1211,16 +1235,28 @@ function addSearchableTargetSelect() {
     if (message) console.warn('CrowdAssist:', message);
   }
 
+  // The displayed text must always be the selected target — never a leftover query. Closing
+  // by any route (click away, Tab, commit) runs through here, otherwise the field shows a
+  // search string the form will not submit and the user reads it as their choice.
+  function syncFromSelect() {
+    const text = selectedText();
+    setInputValue(text);
+    if (clearButton.hidden === !!text) clearButton.hidden = !text;
+  }
+
   function close() {
+    syncFromSelect();
     if (!open) return;
     open = false;
     activeIndex = -1;
     menu.hidden = true;
     input.setAttribute('aria-expanded', 'false');
+    if (input.getAttribute('aria-activedescendant')) input.removeAttribute('aria-activedescendant');
   }
 
   function setActive(index) {
     activeIndex = index;
+    let activeId = '';
     Array.from(menu.querySelectorAll('.ca-combo__option')).forEach((li, i) => {
       const isActive = i === index;
       const flag = isActive ? 'true' : 'false';
@@ -1228,24 +1264,32 @@ function addSearchableTargetSelect() {
       // identical assignment still emits a record and re-enters init().
       if (li.classList.contains('is-active') !== isActive) li.classList.toggle('is-active', isActive);
       if (li.getAttribute('aria-selected') !== flag) li.setAttribute('aria-selected', flag);
-      if (isActive) li.scrollIntoView({ block: 'nearest' });
+      if (isActive) { activeId = li.id; li.scrollIntoView({ block: 'nearest' }); }
     });
+
+    // What a screen reader reads out as the highlight moves.
+    if (activeId) {
+      if (input.getAttribute('aria-activedescendant') !== activeId) input.setAttribute('aria-activedescendant', activeId);
+    } else if (input.getAttribute('aria-activedescendant')) {
+      input.removeAttribute('aria-activedescendant');
+    }
   }
 
   function commit(option) {
+    const value = option ? option.value : '';
+
     echoGuard = true;
-    setNativeValue(select, option.value, ['input', 'change']);
+    setNativeValue(select, value, ['input', 'change']);
     echoGuard = false;
 
     // The write is only believable if it survived. React owns this select, so a future
     // change to how Bugcrowd binds it would otherwise leave a picker that looks like it
     // works and silently submits nothing.
-    if (select.value !== option.value) {
+    if (select.value !== value) {
       restoreNative('could not set the target through the searchable picker, restored the original dropdown');
       return;
     }
 
-    setInputValue(option.text);
     close();
   }
 
@@ -1272,10 +1316,13 @@ function addSearchableTargetSelect() {
 
     visible.forEach((option, i) => {
       const li = document.createElement('li');
+      li.id = 'ca-target-combo-opt-' + i;
       li.className = 'ca-combo__option';
       li.setAttribute('role', 'option');
       li.setAttribute('aria-selected', 'false');
       li.dataset.value = option.value;
+      // Rows ellipsize, and these URLs often differ only near the end.
+      li.title = option.text;
       renderOptionLabel(li, option.text, effective);
       if (option.value === select.value) li.classList.add('is-selected');
       li.addEventListener('mousedown', (event) => {
@@ -1298,10 +1345,14 @@ function addSearchableTargetSelect() {
     });
     menu.appendChild(escape);
 
-    setActive(visible.length > 0 ? 0 : -1);
+    // Start on whatever is already chosen, not on row 0 — otherwise a long scope list opens
+    // scrolled to the top with no sign of which target is currently set.
+    const currentIndex = visible.findIndex((option) => option.value === select.value);
+    setActive(visible.length === 0 ? -1 : (currentIndex === -1 ? 0 : currentIndex));
   }
 
   function openMenu() {
+    if (select.disabled) return;
     if (!open) {
       open = true;
       menu.hidden = false;
@@ -1312,16 +1363,34 @@ function addSearchableTargetSelect() {
 
   function onExternalChange() {
     if (echoGuard) return;
-    setInputValue(selectedText());
+    syncFromSelect();
   }
 
   function onDocumentDown(event) {
     if (!combo.contains(event.target)) close();
   }
 
-  input.addEventListener('focus', openMenu);
+  // Deliberately not wired to "focus": tabbing through the form should not throw a dropdown
+  // over the fields below. Click, typing, or ArrowDown open it.
+  //
+  // Select-all has to be deferred. When focus comes from a click the browser places the
+  // caret *after* the focus event, which wipes a selection made inside the handler —
+  // measured: select() during focus leaves a zero-length selection, the same call a tick
+  // later leaves all 20 characters selected. The collapsed-caret guard means a deliberate
+  // drag-select is left alone.
+  input.addEventListener('focus', () => {
+    window.setTimeout(() => {
+      if (document.activeElement === input && input.selectionStart === input.selectionEnd) input.select();
+    }, 0);
+  });
   input.addEventListener('click', openMenu);
   input.addEventListener('input', openMenu);
+
+  clearButton.addEventListener('mousedown', (event) => {
+    event.preventDefault();
+    commit(null);
+    input.focus();
+  });
 
   chevron.addEventListener('mousedown', (event) => {
     event.preventDefault();
@@ -1357,7 +1426,6 @@ function addSearchableTargetSelect() {
     if (event.key === 'Escape') {
       if (!open) return;
       event.preventDefault();
-      setInputValue(selectedText());
       close();
       return;
     }
@@ -1370,9 +1438,156 @@ function addSearchableTargetSelect() {
   select.addEventListener('change', onExternalChange);
   document.addEventListener('mousedown', onDocumentDown, true);
 
-  setInputValue(selectedText());
+  // Mirror the native control's disabled state, or the replacement stays editable and looks
+  // usable on a form where the real field is locked. Re-checked on every init() pass.
+  select.dataset.caComboSync = 'true';
+
+  syncFromSelect();
+  if (input.disabled !== select.disabled) input.disabled = select.disabled;
   applyToolbarTheme(combo);
   select.insertAdjacentElement('afterend', combo);
+}
+
+// Runs on every init() tick for an already-attached widget: keeps the replacement in step
+// with the native control's disabled state, which React can flip at any time. Writes are
+// conditional because init() is the MutationObserver callback.
+function syncSearchableTargetSelect() {
+  const combo = document.getElementById('ca-target-combo');
+  if (!combo) return;
+
+  const select = getTargetSelect();
+  const input = document.getElementById('ca-target-combo-input');
+  if (!select || !input) return;
+
+  if (input.disabled !== select.disabled) input.disabled = select.disabled;
+  if (combo.classList.contains('is-disabled') !== select.disabled) {
+    combo.classList.toggle('is-disabled', select.disabled);
+  }
+}
+
+// The VRT picker lists entries by name only, so five near-identical "IDOR > ..." rows that
+// actually span P1 to P5 look interchangeable. These badges put the taxonomy's own priority
+// on each row. Bugcrowd's copy beside the field is explicit that the VRT rating is a
+// suggestion the program may override, so the badge says baseline, not verdict.
+const CA_VRT_BADGE_TITLE = 'VRT baseline severity — the program may rate this differently';
+
+// Wears Bugcrowd's own bc-badge--pN alongside our class. Their component is defined on this
+// page and is already theme-aware, so the badge picks up the platform's exact priority
+// colours and follows light/dark for free — no palette of ours to maintain, and it matches
+// the P-badges shown everywhere else on Bugcrowd. Measured inside a dropdown row: their
+// background, colour, border and radius survive; only padding and font-size are overridden
+// by the row's own span rule, which is what our stylesheet puts back.
+function makeVrtBadge(priority) {
+  const badge = document.createElement('span');
+  badge.className = 'ca-vrt-badge bc-badge bc-badge--p' + priority;
+  badge.textContent = 'P' + priority;
+  badge.title = CA_VRT_BADGE_TITLE;
+  return badge;
+}
+
+// Holds the gutter open on rows the taxonomy leaves to the program. Without it their text
+// starts 62px left of every badged row, and a single unindented row in a list of indented
+// ones reads as a rendering fault. No text, no title, no bc-badge class: invisible to
+// sighted users and silent to screen readers.
+function emptyVrtBadge() {
+  const badge = document.createElement('span');
+  badge.className = 'ca-vrt-badge ca-vrt-badge--empty';
+  badge.setAttribute('aria-hidden', 'true');
+  return badge;
+}
+
+// Search rows carry the whole path in aria-label. Browse rows carry only the leaf name, so
+// the path is rebuilt from the highlighted category and the subcategory heading above them.
+function vrtPathForRow(row, container) {
+  const label = row.getAttribute('aria-label');
+  if (!label) return null;
+
+  if (row.classList.contains('vrt-dropdown__opt--search')) return label;
+
+  if (row.classList.contains('vrt-dropdown__opt--variant')) {
+    const category = container.querySelector('.vrt-dropdown__opt--category.vrt-dropdown__opt--active, .vrt-dropdown__opt--category.vrt-dropdown__opt--selected');
+    const subcategory = row.closest('.vrt-dropdown__opt--subcategory');
+    const heading = subcategory && subcategory.querySelector(':scope > span');
+
+    return [
+      category && category.getAttribute('aria-label'),
+      heading && heading.textContent.trim(),
+      label
+    ].filter(Boolean).join(' > ');
+  }
+
+  return null;
+}
+
+function annotateVrtRows(container, map) {
+  const rows = container.querySelectorAll('.vrt-dropdown__opt--search, .vrt-dropdown__opt--variant');
+
+  rows.forEach((row) => {
+    // The marker is what stops the observer reacting to its own writes and spinning.
+    if (row.dataset.caVrt) return;
+    row.dataset.caVrt = '1';
+
+    // No badge for the 86 entries the taxonomy leaves to the program — but still a
+    // placeholder, so every row's text starts at the same x.
+    const priority = window.CrowdAssistVrt.priorityFor(map, vrtPathForRow(row, container));
+    const badge = priority === null ? emptyVrtBadge() : makeVrtBadge(priority);
+
+    row.insertBefore(badge, row.firstChild);
+    row.classList.add('ca-vrt-row');
+  });
+}
+
+// The badge on the closed field, so the severity is still visible while reviewing the form.
+function annotateVrtSelection(container, map) {
+  const display = container.querySelector('.vrt-dropdown__select');
+  if (!display || display.classList.contains('vrt-dropdown__select--placeholder')) {
+    const stale = container.querySelector('.ca-vrt-badge--selected');
+    if (stale) stale.remove();
+    return;
+  }
+
+  const text = (display.textContent || '').replace(/\s+/g, ' ').trim();
+  const priority = window.CrowdAssistVrt.priorityFor(map, text);
+  const existing = container.querySelector('.ca-vrt-badge--selected');
+
+  if (priority === null) {
+    if (existing) existing.remove();
+    return;
+  }
+  // Conditional: re-inserting an identical badge would emit a mutation record every pass.
+  if (existing && existing.textContent === 'P' + priority) return;
+  if (existing) existing.remove();
+
+  const badge = makeVrtBadge(priority);
+  badge.classList.add('ca-vrt-badge--selected');
+  display.insertBefore(badge, display.firstChild);
+}
+
+function addVrtSeverityBadges() {
+  const container = document.querySelector('.vrt-dropdown');
+  if (!container || container.dataset.caVrtInit) return;
+  if (!window.CrowdAssistVrt) return;
+
+  container.dataset.caVrtInit = 'true';
+
+  let map = null;
+  const paint = () => {
+    if (!map) return;
+    annotateVrtRows(container, map);
+    annotateVrtSelection(container, map);
+  };
+
+  // Scoped to the dropdown, not document.body — the panel is rebuilt on every keystroke and
+  // wipes our badges, but the global init() observer does not need to hear about any of it.
+  const observer = new MutationObserver(paint);
+  observer.observe(container, { childList: true, subtree: true });
+
+  // May call back twice: once from cache, once more if a refresh lands. Rows render without
+  // badges until then, which is what keeps this off the form's critical path.
+  window.CrowdAssistVrt.loadVrtMap((loaded) => {
+    map = loaded;
+    paint();
+  });
 }
 
 function addReportCreationButtons() {
@@ -1809,6 +2024,8 @@ function init() {
     // Report creation pages: /engagements/.../submissions/new or /engagements/.../submissions/UUID/edit
     addReportCreationButtons();
     addSearchableTargetSelect();
+    syncSearchableTargetSelect();
+    addVrtSeverityBadges();
   } else if (isReportVisualizationPage()) {
     // Report visualization pages: /submissions/UUID
     addCopyButton();

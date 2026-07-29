@@ -46,6 +46,8 @@ body {
   --ca-menu-border: rgba(0, 0, 0, 0.16);
   --ca-menu-hover-bg: #f2f4f7;
   --ca-menu-muted: #8b919a;
+  --ca-icon-color: #6f767e;
+  --ca-focus-ring: rgba(0, 0, 0, 0.55);
 }
 [data-ca-theme="dark"] {
   --ca-toolbar-bg: #1a1e25;
@@ -65,6 +67,8 @@ body {
   --ca-menu-border: rgba(255, 255, 255, 0.18);
   --ca-menu-hover-bg: #262b34;
   --ca-menu-muted: #8b929b;
+  --ca-icon-color: #9aa2ab;
+  --ca-focus-ring: rgba(255, 255, 255, 0.85);
 }
 
 /* Searchable target picker.
@@ -72,11 +76,12 @@ body {
    42px tall, Inter 14px, 8px radius, 12px/10px padding, border-box. */
 .ca-combo { position: relative; width: 100%; }
 
+/* Left padding clears the magnifier; right padding clears the clear button and chevron. */
 .ca-combo__input {
   box-sizing: border-box;
   width: 100%;
   height: 42px;
-  padding: 12px 32px 12px 10px;
+  padding: 12px 56px 12px 34px;
   font-family: inherit;
   font-size: 14px;
   line-height: 1.2;
@@ -87,18 +92,54 @@ body {
   outline: none;
 }
 .ca-combo__input::placeholder { color: var(--ca-input-placeholder); }
-.ca-combo__input:focus { border-color: var(--ca-btn-color); box-shadow: 0 0 0 1px var(--ca-btn-color); }
+/* Neutral, not brand orange — an orange ring on a form field reads as a validation error
+   next to Bugcrowd's own inputs. */
+.ca-combo__input:focus { border-color: var(--ca-focus-ring); box-shadow: 0 0 0 1px var(--ca-focus-ring); }
+.ca-combo__input:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.ca-combo__search {
+  position: absolute;
+  top: 50%;
+  left: 11px;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--ca-icon-color);
+  pointer-events: none;
+}
+
+.ca-combo__clear {
+  position: absolute;
+  top: 50%;
+  right: 32px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ca-icon-color);
+  cursor: pointer;
+}
+.ca-combo__clear:hover { background: var(--ca-menu-hover-bg); color: var(--ca-input-color); }
+.ca-combo__clear[hidden] { display: none; }
 
 .ca-combo__chevron {
   position: absolute;
   top: 50%;
-  right: 14px;
+  right: 12px;
   transform: translateY(-50%);
   display: flex;
-  color: var(--ca-input-placeholder);
+  color: var(--ca-icon-color);
   cursor: pointer;
   pointer-events: auto;
 }
+
+.ca-combo.is-disabled .ca-combo__chevron,
+.ca-combo.is-disabled .ca-combo__clear { pointer-events: none; opacity: 0.55; }
 
 /* Above the mention tooltip (1000), below the modal overlay (10000). */
 .ca-combo__menu {
@@ -142,6 +183,48 @@ body {
   cursor: pointer;
 }
 .ca-combo__native-row:hover { background: var(--ca-menu-hover-bg); }
+
+/* VRT severity badges — layout only. Every colour comes from Bugcrowd's own bc-badge--pN,
+   which the badge also wears, so the palette matches the platform exactly and follows
+   light/dark without us maintaining a single hex value.
+       P1 red · P2 orange · P3 amber · P4 green · P5 blue
+   Bugcrowd styles the spans inside a dropdown row, and that rule beats ours on padding and
+   font-size — it was making the badge inherit the row text's 8px/28px padding and render as
+   a full-width grey box. Putting those back is all this block does. Do NOT reach for
+   `all: unset` here: it would wipe the bc-badge colours we are deliberately inheriting. */
+li.ca-vrt-row {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+  padding-left: 12px !important;
+}
+li.ca-vrt-row > span.ca-vrt-badge {
+  flex: 0 0 auto !important;
+  display: inline-block !important;
+  width: auto !important;
+  min-width: 32px !important;
+  padding: 3px 6px !important;
+  font-size: 11px !important;
+  line-height: 14px !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+  font-variant-numeric: tabular-nums !important;
+  /* Centres the pill on the *first* line of a row that may wrap to two. The row's text span
+     is padding-top:8px/line-height:21px, so its first line centres at +18.5px; a 22px pill
+     centres there at 8 + 10.5 - 11. Measured delta is 7 on every row. */
+  margin: 7px 0 0 0 !important;
+  cursor: help !important;
+}
+li.ca-vrt-row > span:not(.ca-vrt-badge) {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+/* Holds the gutter open so the text edge stays straight; occupies space, shows nothing. */
+.ca-vrt-badge--empty { visibility: hidden !important; }
+
+/* The badge on the closed field is not inside a dropdown row, so it keeps plain chip
+   spacing and none of the gutter rules above. */
+.ca-vrt-badge--selected { margin-right: 8px; }
 
 /* Bugcrowd draws its own arrow on the wrapper; ours would sit under it. */
 .ca-combo-host::after { display: none !important; }

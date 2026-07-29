@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "CrowdAssist",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "An assistant for Bug Bounty Researchers to help with report writing.",
   "browser_specific_settings": {
     "gecko": {
@@ -29,6 +29,7 @@
       "js": [
         "turndown.js",
         "format-rules.js",
+        "vrt-severity.js",
         "content.js"
       ],
       "css": [
