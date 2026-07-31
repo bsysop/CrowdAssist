@@ -184,6 +184,50 @@ body {
 }
 .ca-combo__native-row:hover { background: var(--ca-menu-hover-bg); }
 
+/* Code block colouring in the markdown editors.
+   The overlay wears `highlight` so Bugcrowd's own stylesheet colours our Rouge token spans,
+   which is why no colour is declared here. Their rule also paints a black background that
+   survives an inline `background: transparent`, hence the !important: without it the overlay
+   would hide the editor entirely. Everything else is geometry, mirrored from the textarea in
+   JS, since only the live computed styles can be trusted to match. */
+.ca-hl {
+  position: absolute;
+  margin: 0;
+  border-style: solid;
+  border-color: transparent;
+  background: transparent !important;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Colour is the only thing this overlay may take from Bugcrowd's stylesheet. Everything that
+   decides where a character lands has to come from the textarea, because the caret is drawn by
+   the textarea from its own metrics while the glyphs come from here: the moment the two
+   measure differently, the caret drifts away from the text.
+
+   Their palette bolds nt, k, nn and si, and bold glyphs are wider. Measured on
+   `GET /abc/ HTTP/1.1`, which carries two bold tokens: the overlay rendered 130px against the
+   textarea's 127px, and the caret landed a full character short of the end. The drift
+   accumulates left to right, so it is worst exactly where you are typing.
+
+   font-style and the rest are defensive. Pygments themes usually italicise comments, and
+   italics shift metrics the same way. */
+.ca-hl span {
+  font-weight: inherit !important;
+  font-style: inherit !important;
+  font-family: inherit !important;
+  letter-spacing: inherit !important;
+  font-variant: inherit !important;
+  text-transform: inherit !important;
+}
+
+/* The textarea sits on top with transparent text. An opaque selection band would paint over
+   the glyphs in the overlay beneath and make selected text vanish, so the highlight has to be
+   see-through enough to read through. */
+.ca-hl-host::selection { background: rgba(90, 150, 255, 0.35); }
+.ca-hl-host::-moz-selection { background: rgba(90, 150, 255, 0.35); }
+
 /* VRT severity badges — layout only. Every colour comes from Bugcrowd's own bc-badge--pN,
    which the badge also wears, so the palette matches the platform exactly and follows
    light/dark without us maintaining a single hex value.

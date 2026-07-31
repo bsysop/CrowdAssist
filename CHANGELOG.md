@@ -4,6 +4,24 @@ All notable changes to the CrowdAssist browser extension will be documented in t
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.11.0] - 2026-07-31
+
+### Added
+- Code block colouring in the markdown editors, off by default and switched on with "Highlight Code Blocks" in the popup. Fenced blocks are coloured as you type, in both the report description and the comment box.
+  - The colours are Bugcrowd's own. Their Preview is rendered server-side by Rouge, whose output carries Pygments token classes under a `.highlight` ancestor, so emitting `<span class="nt">` inside `<pre class="highlight">` picks up the platform's exact palette with no colour declared in this extension. The same approach the VRT badges use for their priority pills.
+  - What cannot be reused is Rouge itself, which is Ruby and runs on their server. `extension/code-highlight.js` is a small regex tokenizer covering http, bash, json, xml, ruby, python and sql, the first four being exactly what our own fence-language rule emits. A flag is the same green as Preview, but token boundaries on an awkward line may differ. Tokens also do not nest, so a Ruby string containing `#{}` stays one string span where Rouge would split it.
+  - A textarea renders plain text and nothing else, so the colours come from a `<pre>` mirrored behind the textarea while the textarea's own text goes transparent and keeps its caret colour. Only fenced content is coloured; prose is escaped and passed through, which keeps the bulk of a report out of the rewrite path.
+  - The mirror is positioned against the textarea's own offset box rather than wrapping it, so nothing React owns is re-parented.
+
+### Fixed
+- The caret drifted away from the text it was sitting in. Bugcrowd's palette bolds four token classes, bold glyphs are wider than regular ones, and the caret is positioned by the textarea's own regular-weight metrics while the glyphs come from the overlay. On `GET /abc/ HTTP/1.1`, which carries two bold tokens, the overlay rendered 130px against the textarea's 127px and the caret appeared a full character short of the end. The drift accumulates left to right, so it was worst exactly where you were typing. Token spans now inherit every metric-affecting property from the textarea and take only colour from Bugcrowd, which brings the drift to 0. The cost is that keywords are no longer bold in the editor: colours still match Preview, weights do not.
+
+### Notes
+- The load-bearing property is that the mirrored text matches the textarea character for character, since a single added or dropped character makes the two layers drift apart. `tests/code-highlight.test.js` asserts it on 20 fixtures by stripping the tags back off and comparing to the input.
+- `overflow-y: auto` on the editor is the trap. Once content outgrows the box a scrollbar appears and takes 8px out of the content width, and every line re-wraps at that point. The overlay tracks `clientWidth` on every repaint rather than only on resize, because the scrollbar appearing does not necessarily resize the observed element. Measured on the live editor with the scrollbar present: width, top and left drift all 0, and both layers report a scrollHeight of 628, meaning they wrap to identical rows.
+- Highlighting a 1.3 KB document takes 0.069 ms, roughly 240 times inside one animation frame, so this runs per keystroke without a debounce.
+- A live rendered preview pane was considered and rejected. Bugcrowd's Preview is a `POST /markdown_preview` round-trip taking 450 ms, so a live pane would mean repeated automated calls to their authenticated endpoint. Rendering markdown client-side instead would show our interpretation rather than theirs, which is worse than no preview given how much their engine's list handling matters.
+
 ## [1.10.0] - 2026-07-29
 
 ### Added

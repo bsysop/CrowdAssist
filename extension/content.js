@@ -1563,6 +1563,153 @@ function annotateVrtSelection(container, map) {
   display.insertBefore(badge, display.firstChild);
 }
 
+// Code block colouring for the markdown editors.
+//
+// A textarea renders plain text, so the colours come from a <pre> mirrored exactly behind it
+// while the textarea itself goes transparent. Everything below exists to keep those two layers
+// on top of each other: any metric that affects where a glyph lands has to be copied, and the
+// mirror has to re-measure whenever the box changes.
+//
+// Off by default. It is a visual layer over a field people rely on, so it is opt-in.
+let highlightCodeCached = null;
+
+// Properties that decide where characters land. Miss one and the layers ghost apart.
+const CA_HL_MIRRORED = [
+  'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'letterSpacing', 'wordSpacing',
+  'lineHeight', 'textTransform', 'textIndent', 'whiteSpace', 'wordBreak', 'overflowWrap',
+  'tabSize', 'direction', 'boxSizing',
+  'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+  'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth'
+];
+
+// clientWidth, not offsetWidth. The field is overflow-y auto, so the moment the content
+// outgrows the box a scrollbar appears and takes ~8px out of the content width. Every line
+// re-wraps at that point, and an overlay still sized to the outer box drifts by exactly the
+// scrollbar's width. This has to run on every repaint, not only on resize: the scrollbar
+// appearing does not necessarily resize the element being observed.
+function syncCodeHighlightSize(textarea, overlay) {
+  const width = textarea.clientWidth + 'px';
+  const height = textarea.clientHeight + 'px';
+  if (overlay.style.width !== width) overlay.style.width = width;
+  if (overlay.style.height !== height) overlay.style.height = height;
+  if (overlay.style.top !== textarea.offsetTop + 'px') overlay.style.top = textarea.offsetTop + 'px';
+  if (overlay.style.left !== textarea.offsetLeft + 'px') overlay.style.left = textarea.offsetLeft + 'px';
+}
+
+function paintCodeHighlight(textarea, overlay) {
+  const html = window.CrowdAssistHighlight.highlight(textarea.value || '');
+  // Conditional, like every write under the MutationObserver.
+  if (overlay.innerHTML !== html) overlay.innerHTML = html;
+  syncCodeHighlightSize(textarea, overlay);
+  if (overlay.scrollTop !== textarea.scrollTop) overlay.scrollTop = textarea.scrollTop;
+  if (overlay.scrollLeft !== textarea.scrollLeft) overlay.scrollLeft = textarea.scrollLeft;
+}
+
+// The full typography mirror. Only worth re-reading on attach and on a real resize, since
+// getComputedStyle is the expensive part; the per-keystroke path uses syncCodeHighlightSize.
+function syncCodeHighlightBox(textarea, overlay) {
+  const cs = getComputedStyle(textarea);
+  CA_HL_MIRRORED.forEach((prop) => {
+    if (overlay.style[prop] !== cs[prop]) overlay.style[prop] = cs[prop];
+  });
+  syncCodeHighlightSize(textarea, overlay);
+}
+
+function detachCodeHighlight(textarea) {
+  if (!textarea || !textarea.dataset.caHl) return;
+
+  const overlay = textarea.caHlOverlay;
+  if (overlay) {
+    if (overlay.caHlResizeObserver) overlay.caHlResizeObserver.disconnect();
+    overlay.remove();
+  }
+
+  textarea.removeEventListener('input', textarea.caHlPaint);
+  textarea.removeEventListener('scroll', textarea.caHlPaint);
+  textarea.classList.remove('ca-hl-host');
+  textarea.style.color = textarea.dataset.caHlColor || '';
+  textarea.style.caretColor = '';
+  textarea.style.background = '';
+  textarea.style.position = '';
+  textarea.style.zIndex = '';
+
+  delete textarea.dataset.caHl;
+  delete textarea.dataset.caHlColor;
+  delete textarea.caHlOverlay;
+  delete textarea.caHlPaint;
+}
+
+function attachCodeHighlight(textarea) {
+  if (!textarea || textarea.dataset.caHl) return;
+  if (!window.CrowdAssistHighlight) return;
+
+  const parent = textarea.parentElement;
+  if (!parent) return;
+
+  const cs = getComputedStyle(textarea);
+  const original = cs.color;
+
+  // `highlight` is what makes Bugcrowd's stylesheet colour our token spans, exactly as the VRT
+  // badges wear bc-badge. Their rule also paints a black background that survives an inline
+  // override, which is what the !important in style.css is for.
+  const overlay = document.createElement('pre');
+  overlay.className = 'ca-hl highlight';
+  overlay.setAttribute('aria-hidden', 'true');
+
+  // Positioning the overlay against the textarea's own offset box means the textarea is never
+  // re-parented, so React's view of the DOM is untouched.
+  if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
+
+  textarea.dataset.caHl = 'true';
+  textarea.dataset.caHlColor = textarea.style.color || '';
+  textarea.classList.add('ca-hl-host');
+  textarea.style.position = 'relative';
+  textarea.style.zIndex = '1';
+  textarea.style.background = 'transparent';
+  textarea.style.color = 'transparent';
+  textarea.style.caretColor = original;
+
+  const paint = () => paintCodeHighlight(textarea, overlay);
+  textarea.caHlOverlay = overlay;
+  textarea.caHlPaint = paint;
+  textarea.addEventListener('input', paint);
+  textarea.addEventListener('scroll', paint);
+
+  textarea.insertAdjacentElement('afterend', overlay);
+  syncCodeHighlightBox(textarea, overlay);
+  paint();
+
+  if (typeof ResizeObserver !== 'undefined') {
+    const observer = new ResizeObserver(() => {
+      syncCodeHighlightBox(textarea, overlay);
+      paint();
+    });
+    observer.observe(textarea);
+    overlay.caHlResizeObserver = observer;
+  }
+}
+
+// Runs on every init() tick. Attaches or detaches to match the setting, and re-attaches if
+// React replaced the field underneath us.
+function applyCodeHighlight() {
+  if (highlightCodeCached === null) return;
+
+  const fields = [getReportDescriptionField(), document.querySelector('#create-comment-body')];
+
+  fields.forEach((field) => {
+    if (!field) return;
+    if (highlightCodeCached) {
+      if (!field.dataset.caHl) attachCodeHighlight(field);
+      else if (!field.caHlOverlay || !field.caHlOverlay.isConnected) {
+        detachCodeHighlight(field);
+        attachCodeHighlight(field);
+      }
+    } else if (field.dataset.caHl) {
+      detachCodeHighlight(field);
+    }
+  });
+}
+
 function addVrtSeverityBadges() {
   const container = document.querySelector('.vrt-dropdown');
   if (!container || container.dataset.caVrtInit) return;
@@ -1921,6 +2068,21 @@ function applyHideBounties() {
   });
 }
 
+// Same shape as applyHideBounties: read once, cache, and let storage.onChanged refresh it,
+// so the setting is not re-read from storage on every DOM mutation.
+function loadCodeHighlightSetting() {
+  if (highlightCodeCached !== null) {
+    applyCodeHighlight();
+    return;
+  }
+
+  safeStorageGet(['highlight_code'], function (result) {
+    if (!result) return;
+    highlightCodeCached = !!result.highlight_code;
+    applyCodeHighlight();
+  });
+}
+
 // One control shared by the submissions list and individual submissions, so the
 // toggle looks and behaves the same wherever it appears. Only one exists per page, so
 // the ids stay unique and paintHideBounties() updates whichever is present.
@@ -1990,6 +2152,10 @@ try {
         hideBountiesCached = !!changes.hide_bounties.newValue;
         paintHideBounties(hideBountiesCached);
       }
+      if (changes.highlight_code) {
+        highlightCodeCached = !!changes.highlight_code.newValue;
+        applyCodeHighlight();
+      }
       if (changes.theme_mode) {
         document.querySelectorAll('[data-ca-theme]').forEach(el => applyToolbarTheme(el));
       }
@@ -2018,6 +2184,9 @@ function init() {
   // Rewards show up on the submissions list and on individual submissions, so this
   // runs regardless of page type
   applyHideBounties();
+
+  // Both markdown editors can carry fenced code, so this is not page-type specific either
+  loadCodeHighlightSetting();
 
   // Add buttons based on page type
   if (isReportCreationPage()) {
