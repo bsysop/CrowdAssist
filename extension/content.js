@@ -603,12 +603,54 @@ function loadTurndown(callback) {
   }
 }
 
+// Bugcrowd only renders the report as HTML on the read-only page; there is no raw-markdown
+// source to fetch (the JSON endpoint 406s, the props carry description_html only). So Copy as
+// Markdown reconstructs from HTML, and the reconstruction is what has to be good. Vanilla
+// Turndown's defaults are the weak part: setext headings, indented (unfenced) code, no table
+// rule at all. These options and rules fix that.
+function buildReportTurndownService() {
+  const td = new TurndownService({
+    headingStyle: 'atx',
+    hr: '---',
+    bulletListMarker: '-',
+    codeBlockStyle: 'fenced',
+    emDelimiter: '_',
+    strongDelimiter: '**',
+    linkStyle: 'inlined'
+  });
+
+  // Fenced code from textContent. Bugcrowd wraps code in Rouge syntax highlighting
+  // (<div class="highlight"><pre><code><span>...), and that span soup mangles the default
+  // output. Reading textContent strips the spans and the wrapper. No language class is emitted,
+  // so the fence is plain.
+  td.addRule('caCodeBlock', {
+    filter: (node) => node.nodeName === 'PRE',
+    replacement: (content, node) => '\n\n```\n' + node.textContent.replace(/\n+$/, '') + '\n```\n\n'
+  });
+
+  // GFM pipe tables. Turndown has no table rule, so a <table> otherwise flattens into
+  // concatenated cell text. querySelectorAll('tr') flattens thead/tbody transparently.
+  td.addRule('caTable', {
+    filter: 'table',
+    replacement: (content, node) => {
+      const rows = Array.from(node.querySelectorAll('tr'));
+      if (!rows.length) return content;
+      const cell = (c) => c.textContent.replace(/\r?\n/g, ' ').replace(/\|/g, '\\|').trim();
+      const line = (tr) => '| ' + Array.from(tr.children).map(cell).join(' | ') + ' |';
+      const sep = '| ' + Array.from(rows[0].children).map(() => '---').join(' | ') + ' |';
+      return '\n\n' + [line(rows[0]), sep, ...rows.slice(1).map(line)].join('\n') + '\n\n';
+    }
+  });
+
+  return td;
+}
+
 function copyReportAsMarkdown() {
   const button = document.getElementById('ca-copy-markdown-button');
   const textSpan = button.querySelector('.ca-toolbar__btn-text');
   const originalText = textSpan.textContent;
 
-  const turndownService = new TurndownService();
+  const turndownService = buildReportTurndownService();
   const submissionElement = document.querySelector('.bc-helper-nopadding');
 
   if (submissionElement) {
@@ -618,6 +660,15 @@ function copyReportAsMarkdown() {
     if (featureContainerInClone) {
       featureContainerInClone.remove();
     }
+
+    // Resolve relative image/link URLs to absolute, so pasted content still points at Bugcrowd.
+    submissionClone.querySelectorAll('img[src], a[href]').forEach((el) => {
+      const attr = el.tagName === 'IMG' ? 'src' : 'href';
+      const v = el.getAttribute(attr);
+      if (v && !/^(https?:|data:|mailto:|#)/i.test(v)) {
+        try { el.setAttribute(attr, new URL(v, location.origin).href); } catch (e) {}
+      }
+    });
 
     const markdown = turndownService.turndown(submissionClone);
     navigator.clipboard.writeText(markdown).then(() => {
