@@ -159,7 +159,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // const privacyModeCheckbox = document.getElementById('privacy-mode'); // Privacy mode temporarily disabled
   const themeCheckbox = document.getElementById('theme-dark-mode');
   const hideBountiesCheckbox = document.getElementById('hide-bounties');
-  const highlightCodeCheckbox = document.getElementById('highlight-code');
   const autoRenewCheckbox = document.getElementById('auto-renew-session');
   const saveButton = document.getElementById('save-token');
   const testButton = document.getElementById('test-token');
@@ -182,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Load existing settings and apply theme
   browser.storage.sync.get(
-    ['ai_provider', 'openai_token', 'anthropic_token', 'theme_mode', 'auto_renew_session', 'hide_bounties', 'highlight_code'],
+    ['ai_provider', 'openai_token', 'anthropic_token', 'theme_mode', 'auto_renew_session', 'hide_bounties'],
     function(result) {
       providerSelect.value = result.ai_provider || 'openai';
       if (result.openai_token) openaiTokenInput.value = result.openai_token;
@@ -207,8 +206,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       hideBountiesCheckbox.checked = !!result.hide_bounties;
-      // Defaults to off: it draws a layer over a field people rely on, so it is opt-in.
-      highlightCodeCheckbox.checked = !!result.highlight_code;
 
       updateProviderVisibility();
       getCurrentTheme(applyTheme);
@@ -229,11 +226,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // and the open submissions list page update right away via storage.onChanged.
   hideBountiesCheckbox.addEventListener('change', function() {
     browser.storage.sync.set({ hide_bounties: this.checked });
-  });
-
-  // Live toggle too, so an open editor picks it up through storage.onChanged without a reload.
-  highlightCodeCheckbox.addEventListener('change', function() {
-    browser.storage.sync.set({ highlight_code: this.checked });
   });
 
   // Save settings

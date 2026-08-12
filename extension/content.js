@@ -1571,6 +1571,13 @@ function annotateVrtSelection(container, map) {
 // mirror has to re-measure whenever the box changes.
 //
 // Off by default. It is a visual layer over a field people rely on, so it is opt-in.
+//
+// Temporarily parked: the overlay showed instability (doubled glyphs / caret drift) and is under
+// review, so the option was pulled from the popup. The implementation below is kept intact; to
+// bring it back, flip this flag to true and restore the "Highlight Code Blocks" popup toggle.
+// While false the feature never attaches, and any stale `highlight_code: true` in a tester's
+// synced storage is ignored (loadCodeHighlightSetting forces it off).
+const CA_HIGHLIGHT_CODE_ENABLED = false;
 let highlightCodeCached = null;
 
 // Properties that decide where characters land. Miss one and the layers ghost apart.
@@ -2071,6 +2078,14 @@ function applyHideBounties() {
 // Same shape as applyHideBounties: read once, cache, and let storage.onChanged refresh it,
 // so the setting is not re-read from storage on every DOM mutation.
 function loadCodeHighlightSetting() {
+  if (!CA_HIGHLIGHT_CODE_ENABLED) {
+    // Feature parked (see CA_HIGHLIGHT_CODE_ENABLED). Force it off regardless of any stale
+    // highlight_code:true in synced storage, and detach the overlay if it is somehow attached.
+    highlightCodeCached = false;
+    applyCodeHighlight();
+    return;
+  }
+
   if (highlightCodeCached !== null) {
     applyCodeHighlight();
     return;
@@ -2152,7 +2167,7 @@ try {
         hideBountiesCached = !!changes.hide_bounties.newValue;
         paintHideBounties(hideBountiesCached);
       }
-      if (changes.highlight_code) {
+      if (changes.highlight_code && CA_HIGHLIGHT_CODE_ENABLED) {
         highlightCodeCached = !!changes.highlight_code.newValue;
         applyCodeHighlight();
       }

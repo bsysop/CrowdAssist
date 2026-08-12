@@ -4,6 +4,11 @@ All notable changes to the CrowdAssist browser extension will be documented in t
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+- "Highlight Code Blocks" is temporarily removed from the popup. The editor code-colouring showed instability (overlay doubling and caret drift on some lines) and is parked for review. The code stays in the extension behind a disabled flag, and any previously saved preference is now ignored so the feature stays off.
+
 ## [1.11.0] - 2026-07-31
 
 ### Added
